@@ -1,0 +1,202 @@
+.user-management {
+    padding: 20px;
+}
+
+/* 搜索表单样式 */
+.search-form {
+    margin-bottom: 20px;
+    background: #f5f7fa;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.search-form .el-form-item {
+    margin-bottom: 0;
+    margin-right: 20px;
+}
+
+.search-form .el-input {
+    width: 200px;
+}
+
+/* 表格样式 */
+.el-table {
+    margin-top: 20px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.el-table th {
+    background-color: #f5f7fa;
+    color: #606266;
+    font-weight: bold;
+}
+
+.el-table .el-button {
+    padding: 5px 12px;
+}
+
+/* 分页样式 */
+.pagination-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 对话框样式 */
+.el-dialog__body {
+    padding: 30px 40px;
+}
+
+.dialog-footer {
+    text-align: right;
+}
+
+/* 表单样式 */
+.el-form-item__label {
+    font-weight: bold;
+}
+
+.el-input__inner:focus {
+    border-color: #409EFF;
+}
+
+/* 权限穿梭框样式 */
+.el-transfer {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.el-transfer-panel {
+    width: 250px;
+}
+
+.el-transfer-panel__header {
+    background-color: #f5f7fa;
+}
+
+/* 状态开关样式 */
+.el-switch__core {
+    width: 40px;
+}
+
+/* 标签样式 */
+.el-tag {
+    border-radius: 4px;
+    padding: 0 8px;
+}
+
+.el-tag--danger {
+    background-color: #fef0f0;
+    border-color: #fbc4c4;
+    color: #f56c6c;
+}
+
+.el-tag--success {
+    background-color: #f0f9eb;
+    border-color: #c2e7b0;
+    color: #67c23a;
+}
+
+/* 按钮样式 */
+.el-button--text {
+    padding: 0;
+    font-size: 14px;
+}
+
+.el-button--primary {
+    background-color: #409EFF;
+    border-color: #409EFF;
+}
+
+.el-button--danger {
+    background-color: #f56c6c;
+    border-color: #f56c6c;
+}
+
+/* 加载动画 */
+.el-loading-spinner .circular {
+    width: 30px;
+    height: 30px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+    .search-form {
+        flex-direction: column;
+    }
+
+    .search-form .el-form-item {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+
+    .search-form .el-input {
+        width: 100%;
+    }
+
+    .el-table .el-button {
+        margin: 2px 0;
+    }
+}
+
+/* 动画效果 */
+.el-table-column--hover {
+    transition: background-color 0.3s;
+}
+
+.el-table-column--hover:hover {
+    background-color: #f5f7fa;
+}
+
+/* 表格行动画 */
+.el-table__row {
+    transition: all 0.3s ease;
+}
+
+.el-table__row:hover {
+    transform: translateX(5px);
+}
+
+/* 按钮悬停效果 */
+.el-button:not(.is-disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+/* 对话框动画 */
+.el-dialog {
+    transition: all 0.3s ease-out;
+}
+
+.dialog-fade-enter-active {
+    animation: dialog-fade-in 0.3s;
+}
+
+.dialog-fade-leave-active {
+    animation: dialog-fade-out 0.3s;
+}
+
+@keyframes dialog-fade-in {
+    0% {
+        transform: translate3d(0, -20px, 0);
+        opacity: 0;
+    }
+    100% {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes dialog-fade-out {
+    0% {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate3d(0, -20px, 0);
+        opacity: 0;
+    }
+} 

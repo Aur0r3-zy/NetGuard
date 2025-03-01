@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 网络攻击检测与权限管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus/dist/index.css">
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+    <div id="app">
+        <div class="login-container">
+            <el-card class="login-card">
+                <div class="login-header">
+                    <h2>网络攻击检测与权限管理系统</h2>
+                    <p>安全防护，从这里开始</p>
+                </div>
+                <el-form ref="loginForm" :model="loginForm" :rules="rules" @submit.prevent="handleLogin">
+                    <el-form-item prop="username">
+                        <el-input 
+                            v-model="loginForm.username"
+                            prefix-icon="el-icon-user"
+                            placeholder="用户名">
+                        </el-input>
+                    </el-form-item>
+                    <el-form-item prop="password">
+                        <el-input 
+                            v-model="loginForm.password"
+                            prefix-icon="el-icon-lock"
+                            type="password"
+                            placeholder="密码"
+                            show-password>
+                        </el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" :loading="loading" @click="handleLogin" class="login-button">
+                            {{ loading ? '登录中...' : '登录' }}
+                        </el-button>
+                    </el-form-item>
+                </el-form>
+                <div class="login-footer">
+                    <p>忘记密码？请联系系统管理员</p>
+                    <p class="version">Version 1.0.0</p>
+                </div>
+            </el-card>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/element-plus"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/js/login.js"></script>
+</body>
+</html> 

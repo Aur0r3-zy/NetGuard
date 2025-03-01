@@ -1,189 +1,162 @@
-# 网络攻击检测和权限管理系统
+# 网络攻击检测与权限管理系统
 
-这是一个基于PHP的网络攻击检测和用户权限管理系统，提供Web界面，支持多种攻击检测和防御功能，以及细粒度的用户权限控制。
+## 项目简介
+本系统是一个基于PHP的网络攻击检测与权限管理系统，提供实时攻击检测、用户权限管理、日志记录等功能。系统采用前后端分离架构，前端使用Vue.js和Element Plus，后端使用PHP，数据库使用MySQL。
 
 ## 主要功能
-
-- 实时检测和防御多种网络攻击
-  - SQL注入攻击
-  - XSS跨站脚本攻击
-  - 路径遍历攻击
-  - 命令注入攻击
-- 用户认证和授权
-  - JWT令牌认证
-  - 基于角色的访问控制
+- 用户认证与授权
+  - 用户登录/登出
+  - 基于角色的访问控制（RBAC）
   - 细粒度的权限管理
-- 完整的日志记录
-  - 攻击日志
-  - 操作日志
-  - 系统日志
-- 现代化的Web界面
-  - 响应式设计
-  - 实时数据更新
-  - 丰富的数据可视化
 
-## 系统要求
+- 攻击检测
+  - SQL注入检测
+  - XSS攻击检测
+  - 路径遍历检测
+  - 命令注入检测
+  - 实时告警
 
-- PHP >= 7.4
-- MySQL >= 5.7
-- Composer
-- Node.js >= 14 (用于前端开发)
+- 系统监控
+  - 系统负载监控
+  - 用户活动监控
+  - 攻击趋势分析
+  - 安全评分
+
+- 日志管理
+  - 攻击日志记录
+  - 用户操作日志
+  - 系统事件日志
+
+## 技术栈
+- 前端
+  - Vue.js 3
+  - Element Plus
+  - ECharts
+  - Axios
+
+- 后端
+  - PHP 8.0+
+  - Slim Framework
+  - Doctrine DBAL
+  - Monolog
+
+- 数据库
+  - MySQL 8.0+
 
 ## 安装步骤
 
-1. 克隆代码库：
+1. 克隆项目
 ```bash
-git clone https://github.com/yourusername/web-attack-detection.git
-cd web-attack-detection
+git clone [项目地址]
+cd web_attack_test
 ```
 
-2. 安装PHP依赖：
+2. 安装PHP依赖
 ```bash
 composer install
 ```
 
-3. 配置数据库：
-- 创建新的MySQL数据库
-- 复制 `.env.example` 为 `.env`
-- 修改 `.env` 中的数据库配置
-
-4. 初始化数据库：
+3. 配置环境变量
 ```bash
-php src/database/init.sql
+cp .env.example .env
+# 编辑.env文件，配置数据库连接等信息
 ```
 
-5. 启动开发服务器：
+4. 初始化数据库
 ```bash
-php -S localhost:8000 -t public
+# 导入数据库结构
+mysql -u your_username -p your_database < database/schema.sql
+# 导入初始数据
+mysql -u your_username -p your_database < database/seed.sql
 ```
 
-现在可以访问 http://localhost:8000 来使用系统。
-
-## 默认账户
-
-系统会自动创建一个默认的管理员账户：
-
-- 用户名：admin
-- 密码：admin123
-
-**请在首次登录后立即修改密码！**
-
-## API文档
-
-### 认证相关
-
-#### 登录
-```
-POST /api/auth/login
-Content-Type: application/json
-
-{
-    "username": "your_username",
-    "password": "your_password"
-}
+5. 配置Web服务器
+```apache
+# Apache配置示例
+<VirtualHost *:80>
+    ServerName your-domain.com
+    DocumentRoot /path/to/web_attack_test/public
+    
+    <Directory /path/to/web_attack_test/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
 ```
 
-#### 注销
-```
-POST /api/auth/logout
-Authorization: Bearer your_token
-```
-
-### 用户管理
-
-#### 获取用户列表
-```
-GET /api/users
-Authorization: Bearer your_token
+6. 设置目录权限
+```bash
+chmod -R 755 storage/logs
+chmod -R 755 storage/cache
 ```
 
-#### 创建用户
-```
-POST /api/users
-Authorization: Bearer your_token
-Content-Type: application/json
-
-{
-    "username": "newuser",
-    "password": "password123",
-    "email": "user@example.com",
-    "role": "user"
-}
-```
-
-### 权限管理
-
-#### 获取权限列表
-```
-GET /api/permissions
-Authorization: Bearer your_token
-```
-
-#### 分配权限
-```
-POST /api/users/{user_id}/permissions
-Authorization: Bearer your_token
-Content-Type: application/json
-
-{
-    "permissions": ["permission1", "permission2"]
-}
-```
-
-### 日志查询
-
-#### 获取攻击日志
-```
-GET /api/attack-logs
-Authorization: Bearer your_token
-```
-
-#### 获取操作日志
-```
-GET /api/activity-logs
-Authorization: Bearer your_token
-```
+## 系统要求
+- PHP >= 8.0
+- MySQL >= 8.0
+- Apache/Nginx
+- Composer
+- mod_rewrite 模块（Apache）
 
 ## 安全配置
+1. 确保 `.env` 文件不被公开访问
+2. 配置适当的文件权限
+3. 启用HTTPS
+4. 定期更新依赖包
+5. 配置防火墙规则
 
-1. 确保 `.env` 文件中包含足够强度的密钥：
-```
-JWT_SECRET=your_very_long_random_secret_key
-```
-
-2. 配置适当的文件权限：
-```bash
-chmod 755 public/
-chmod 644 public/*
-chmod 755 src/
-chmod 644 src/*
-```
-
-3. 确保日志目录可写：
-```bash
-chmod 755 logs/
-```
+## API文档
+API文档位于 `docs/api.md`，包含所有接口的详细说明。
 
 ## 开发指南
+1. 代码规范遵循PSR-12
+2. 提交代码前运行测试
+3. 保持日志记录的完整性
+4. 遵循安全编码最佳实践
 
-### 添加新的攻击检测规则
+## 目录结构
+```
+web_attack_test/
+├── config/             # 配置文件
+├── database/           # 数据库文件
+├── docs/              # 文档
+├── public/            # 公共文件
+│   ├── css/          # 样式文件
+│   ├── js/           # JavaScript文件
+│   └── index.php     # 入口文件
+├── src/               # 源代码
+│   ├── Controllers/  # 控制器
+│   ├── Services/     # 服务层
+│   ├── Middleware/   # 中间件
+│   └── Models/       # 模型
+├── storage/           # 存储目录
+│   ├── logs/        # 日志文件
+│   └── cache/       # 缓存文件
+├── tests/            # 测试文件
+├── vendor/           # Composer依赖
+├── .env.example      # 环境变量示例
+├── composer.json     # Composer配置
+└── README.md         # 项目说明
+```
 
-1. 在 `src/Middleware/SecurityMiddleware.php` 中的 `$attackPatterns` 数组添加新的检测模式
-2. 在 `determineAttackSeverity()` 方法中添加相应的严重程度判断逻辑
+## 常见问题
+1. 权限问题：确保storage目录可写
+2. 数据库连接：检查.env配置
+3. URL重写：确保mod_rewrite已启用
 
-### 添加新的权限
-
-1. 在数据库的 `permissions` 表中添加新权限
-2. 在 `src/Middleware/PermissionMiddleware.php` 中的 `$routePermissions` 数组更新路由权限配置
+## 更新日志
+### v1.0.0 (2024-03-xx)
+- 初始版本发布
+- 基础用户管理功能
+- 攻击检测功能
+- 权限管理系统
+- 日志记录功能
 
 ## 贡献指南
-
-1. Fork 本项目
-2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的修改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建一个 Pull Request
+1. Fork 项目
+2. 创建特性分支
+3. 提交更改
+4. 推送到分支
+5. 创建Pull Request
 
 ## 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详细信息。 
+MIT License 
