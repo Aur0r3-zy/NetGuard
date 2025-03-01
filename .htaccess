@@ -1,0 +1,114 @@
+# 启用重写引擎
+RewriteEngine On
+
+# 设置基础路径
+RewriteBase /
+
+# 如果请求的不是真实文件或目录，则重定向到index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# 安全头部设置
+<IfModule mod_headers.c>
+    # 防止点击劫持
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # XSS保护
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # 禁止MIME类型嗅探
+    Header set X-Content-Type-Options "nosniff"
+    
+    # 内容安全策略
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https:;"
+    
+    # HSTS（HTTP严格传输安全）
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    
+    # 引用策略
+    Header set Referrer-Policy "same-origin"
+</IfModule>
+
+# 禁止访问敏感文件
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^(composer\.json|composer\.lock|package\.json|package-lock\.json|\.env.*|\.gitignore)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 禁止访问源代码目录
+<DirectoryMatch "^/.*/(?:src|vendor|node_modules|tests)/">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>
+
+# 禁止列出目录内容
+Options -Indexes
+
+# 限制HTTP方法
+<LimitExcept GET POST PUT DELETE OPTIONS>
+    Order allow,deny
+    Deny from all
+</LimitExcept>
+
+# PHP设置
+<IfModule mod_php.c>
+    # 禁用危险的PHP函数
+    php_value disable_functions exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,phpinfo
+    
+    # 不显示PHP错误
+    php_flag display_errors off
+    
+    # 不显示PHP版本
+    php_flag expose_php off
+    
+    # 设置最大上传文件大小
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    
+    # 设置会话安全选项
+    php_value session.cookie_httponly 1
+    php_value session.cookie_secure 1
+    php_value session.use_only_cookies 1
+    php_value session.cookie_samesite "Strict"
+</IfModule>
+
+# 压缩文本文件
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# 设置缓存控制
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/x-javascript "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 year"
+</IfModule>
+
+# 防止SQL注入和XSS攻击的额外规则
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2})
+    RewriteRule .* index.php [F,L]
+</IfModule> 
