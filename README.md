@@ -50,7 +50,7 @@
 ## 安装说明
 1. 克隆项目到本地
 ```bash
-git clone [项目地址]
+git clone https://github.com/Aur0r3-zy/NetGuard/
 ```
 
 2. 安装依赖
