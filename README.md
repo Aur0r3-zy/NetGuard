@@ -45,7 +45,7 @@
 - CPU：i5-11400或更高
 - 内存：8GB或更高
 - 硬盘：320GB或更高
-- 操作系统：Windows 10/8.1/8/7
+- 操作系统：Windows 10
 
 ## 安装说明
 1. 克隆项目到本地
@@ -76,62 +76,141 @@ php -S localhost:8000 -t public
 
 ```
 project/
-├── src/                          # 源代码目录
-│   ├── Core/                     # 核心功能模块
-│   │   ├── Algorithm/           # 算法相关
-│   │   │   └── ImmuneAlgorithm.php
-│   │   ├── Immune/              # 免疫算法实现
-│   │   │   ├── Algorithm.php    # 免疫算法核心类
-│   │   │   ├── Antigen.php      # 抗原类
-│   │   │   ├── Antibody.php     # 抗体类
-│   │   │   └── Memory.php       # 记忆细胞类
-│   │   ├── Log/                 # 日志管理
-│   │   │   └── LogManager.php   # 日志管理器
-│   │   └── Monitor/             # 监控模块
-│   │       ├── TrafficMonitor.php    # 流量监控
-│   │       ├── SecurityMonitor.php   # 安全监控
-│   │       └── AttackMonitor.php     # 攻击监控
-│   ├── Api/                      # API接口
-│   │   └── Controllers/         # 控制器
-│   │       ├── DashboardController.php
-│   │       ├── IntrusionController.php
-│   │       └── MonitorController.php
-│   └── Models/                   # 数据模型
-│       ├── Intrusion.php
-│       └── Monitor.php
-├── config/                       # 配置文件目录
-│   ├── database.php             # 数据库配置
-│   ├── traffic.php              # 流量监控配置
-│   └── security.php             # 安全配置
-├── public/                       # 公共访问目录
-│   ├── index.php                # 入口文件
-│   ├── assets/                  # 静态资源
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   └── uploads/                 # 上传文件目录
-├── resources/                    # 资源文件
-│   ├── views/                   # 视图文件
-│   │   ├── dashboard/
-│   │   ├── intrusion/
-│   │   └── monitor/
-│   └── lang/                    # 语言文件
-│       └── zh/
-├── storage/                      # 存储目录
-│   ├── logs/                    # 日志文件
-│   ├── cache/                   # 缓存文件
-│   └── temp/                    # 临时文件
-├── tests/                        # 测试目录
-│   ├── Unit/                    # 单元测试
-│   └── Integration/             # 集成测试
-├── vendor/                       # 第三方依赖
-├── .env                         # 环境变量
-├── .gitignore                   # Git忽略文件
-├── composer.json                # Composer配置
-├── composer.lock                # Composer依赖锁定
-├── package.json                 # NPM配置
-├── README.md                    # 项目说明
-└── LICENSE                      # 许可证
+│  .env.example            # 环境变量示例配置文件，供用户参考填写
+│  .gitignore              # Git忽略文件配置，定义不需要提交的文件
+│  code.txt                # 一些代码或笔记文件
+│  composer.json           # PHP依赖管理器 Composer 的配置文件
+│  config.json             # 应用程序的主要配置文件
+│  INSTALL.md              # 项目安装说明文档，指导用户如何安装项目
+│  LICENSE                 # 项目许可证，通常为 MIT 或其他开源许可证
+│  phpunit.xml             # PHPUnit 测试配置文件
+│  README.md               # 项目简介和使用说明
+│
+├─config                   # 配置文件目录
+│      database.php        # 数据库连接和设置配置
+│
+├─public                   # 应用的公共文件，前端展示和API入口
+│  │  dashboard.html       # 仪表板的静态HTML页面
+│  │  index.html           # 应用程序首页的静态HTML页面
+│  │  index.php            # 应用程序入口文件，用于加载初始配置和处理请求
+│  ├─api                   # API相关文件目录
+│  │      index.php        # API的入口文件，用于处理API请求
+│  ├─components            # 前端可复用的UI组件
+│  │      AttackMonitor.js # 攻击监控前端组件
+│  │      IntrusionRecords.js # 入侵记录展示组件
+│  │      RiskAssessment.js # 风险评估前端组件
+│  │      SecurityStatus.js # 安全状态前端组件
+│  │      TrafficMonitor.js # 流量监控前端组件
+│  └─js                    # JavaScript文件目录
+│          api.js          # 与后端API交互的JS工具类
+│
+├─resources                # 视图模板文件
+│  └─views
+│          404.php         # 404错误页面
+│          500.php         # 500错误页面
+│          alerts.php      # 告警信息页面
+│          dashboard.php   # 仪表板页面
+│          layout.php      # 页面布局模板，包含头部和脚部
+│          monitor.php     # 监控页面，显示网络攻击的实时监控数据
+│          settings.php    # 系统设置页面
+│
+├─src                      # 核心代码目录
+│  │  index.php            # 应用的主要引导文件，加载必要的类和配置
+│  │
+│  ├─Api                   # API功能相关的文件
+│  │  │  Request.php       # 处理API请求的类
+│  │  │  Router.php        # 路由处理类，管理不同请求的转发
+│  │  │  routes.php        # 定义API路由的配置文件
+│  │  │
+│  │  ├─Controller         # 控制器类，管理API请求处理
+│  │  │      DashboardController.php  # 仪表板API控制器
+│  │  │      IntrusionController.php  # 入侵检测控制器
+│  │  │      MonitorController.php    # 监控数据的API控制器
+│  │  │      RiskController.php       # 风险评估控制器
+│  │  │
+│  │  ├─Exception          # 异常处理类
+│  │  │      UnauthorizedException.php # 未授权异常类
+│  │  │
+│  │  └─Middleware         # 中间件处理目录
+│  │          AuthMiddleware.php      # 认证中间件，验证用户身份
+│  │          CorsMiddleware.php      # 跨域请求处理中间件
+│  │          MiddlewareInterface.php # 中间件接口类
+│  │
+│  ├─Config                # 配置加载类
+│  │      ConfigLoader.php  # 加载和管理配置文件的类
+│  │
+│  ├─Controllers           # 控制器文件
+│  │      ApiController.php # API控制器，处理与API相关的请求
+│  │
+│  ├─Core                  # 核心功能模块
+│  │  ├─Auth               # 认证相关
+│  │  │      Authenticator.php # 处理用户认证和授权
+│  │  │
+│  │  ├─Config             # 系统配置模块
+│  │  │      SystemSettings.php # 系统设置管理类
+│  │  │
+│  │  ├─Data               # 数据管理模块
+│  │  │      IntrusionComments.php  # 入侵事件的评论数据类
+│  │  │      IntrusionRecord.php    # 入侵记录数据类
+│  │  │      IntrusionStatistics.php# 入侵统计数据类
+│  │  │      IntrusionTags.php      # 入侵标签数据类
+│  │  │
+│  │  ├─Immune             # 人工免疫算法相关模块
+│  │  │      Algorithm.php  # 免疫算法主逻辑
+│  │  │      Antibody.php   # 抗体数据结构类
+│  │  │      Antigen.php    # 抗原数据结构类
+│  │  │      Memory.php     # 免疫记忆算法类
+│  │  │
+│  │  ├─Log                # 日志处理模块
+│  │  │      LogManager.php # 管理和记录系统日志
+│  │  │
+│  │  ├─Monitor            # 监控功能模块
+│  │  │      AttackMonitor.php  # 攻击监控逻辑
+│  │  │      SecurityMonitor.php# 安全监控逻辑
+│  │  │      TrafficMonitor.php # 流量监控逻辑
+│  │  │
+│  │  ├─Network            # 网络数据处理模块
+│  │  │      PacketProcessor.php  # 数据包处理逻辑
+│  │  │      TrafficAnalyzer.php  # 网络流量分析逻辑
+│  │  │
+│  │  ├─Risk               # 风险评估模块
+│  │  │      RiskAssessor.php # 处理风险评估逻辑
+│  │  │
+│  │  └─Session            # 会话管理模块
+│  │          Session.php   # 管理用户会话的类
+│  │
+│  ├─Data                  # 数据处理模块
+│  │      FeatureExtractor.php # 特征提取逻辑
+│  │      Normalizer.php       # 数据标准化处理
+│  │      Preprocessor.php     # 数据预处理逻辑
+│  │
+│  ├─Database              # 数据库操作相关模块
+│  │  │  Database.php       # 数据库连接和操作类
+│  │  │  init.php           # 初始化数据库配置
+│  │  │
+│  │  ├─Migrations         # 数据库迁移模块
+│  │  │      create_tables.php # 创建数据库表的迁移文件
+│  │  │
+│  │  └─Seeds              # 数据填充模块
+│  │          init_data.php # 初始化数据库数据
+│  │
+│  ├─routes                # 路由配置
+│  │      api.php           # 定义API路由规则
+│  │
+│  └─Utils                 # 工具类
+│          Database.php     # 数据库工具类
+│          Logger.php       # 日志工具类
+│
+└─tests                    # 测试文件目录
+    ├─Core/Immune          # 免疫算法相关测试
+    │      AlgorithmTest.php # 测试免疫算法的功能
+    │
+    ├─Performance          # 性能测试相关
+    │      PerformanceTest.php # 测试系统性能的类
+    │
+    └─Security             # 安全功能相关测试
+           SecurityTest.php  # 测试系统的安全功能
+
 ```
 
 ## 主要目录说明
