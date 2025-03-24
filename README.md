@@ -50,7 +50,7 @@
 ## 安装说明
 1. 克隆项目到本地
 ```bash
-git clone [项目地址]
+git clone https://github.com/Aur0r3-zy/NetGuard/
 ```
 
 2. 安装依赖
@@ -268,13 +268,7 @@ project/
    - 分析检测日志
    - 查看历史案例
 
-## 版本信息
-- 当前版本：V1.0
-- 发布日期：2024-03-21
-- 更新日志：详见CHANGELOG.md
 
-## 许可证
-本项目采用 MIT 许可证，详见 LICENSE 文件。
 
 
 
