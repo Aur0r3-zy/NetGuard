@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory suffix="Test.php">tests/Integration</directory>
+        </testsuite>
+        <testsuite name="Security">
+            <directory suffix="Test.php">tests/Security</directory>
+        </testsuite>
+        <testsuite name="Performance">
+            <directory suffix="Test.php">tests/Performance</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">tests</directory>
+            <directory suffix=".php">vendor</directory>
+        </exclude>
+        <report>
+            <html outputDirectory="coverage"/>
+        </report>
+    </coverage>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_HOST" value="localhost"/>
+        <env name="DB_PORT" value="3306"/>
+        <env name="DB_NAME" value="test_db"/>
+        <env name="DB_USER" value="test_user"/>
+        <env name="DB_PASSWORD" value="test_pass"/>
+        <env name="REDIS_HOST" value="localhost"/>
+        <env name="REDIS_PORT" value="6379"/>
+        <env name="REDIS_PASSWORD" value=""/>
+        <env name="LOG_LEVEL" value="debug"/>
+        <env name="MAX_MEMORY" value="256M"/>
+        <env name="MAX_EXECUTION_TIME" value="300"/>
+        <env name="PACKET_BUFFER_SIZE" value="1000"/>
+        <env name="CONCURRENT_REQUESTS" value="10"/>
+    </php>
+</phpunit> 

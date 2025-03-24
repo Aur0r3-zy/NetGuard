@@ -1,0 +1,41 @@
+{
+    "algorithm": {
+        "threshold": 0.85,
+        "memory_size": 1000,
+        "affinity_threshold": 0.7,
+        "concentration_decay": 0.1
+    },
+    "network": {
+        "packet_buffer_size": 1000,
+        "protocols": ["TCP", "UDP", "ICMP"],
+        "ports": {
+            "common": [80, 443, 22, 21, 23, 25, 53],
+            "suspicious": [3389, 445, 1433, 3306]
+        }
+    },
+    "preprocessing": {
+        "normalization": {
+            "method": "zscore",
+            "features": ["packet_size", "inter_arrival_time", "protocol_entropy"]
+        },
+        "feature_extraction": {
+            "statistical": true,
+            "temporal": true,
+            "protocol": true,
+            "traffic": true
+        }
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "logs/app.log",
+        "max_size": 10485760,
+        "backup_count": 5
+    },
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "name": "network_detection",
+        "user": "root",
+        "password": ""
+    }
+} 

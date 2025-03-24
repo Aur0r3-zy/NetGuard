@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络安全检测系统 - 登录</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/theme-chalk/index.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-container {
+            width: 400px;
+            padding: 40px;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+        }
+        .login-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #303133;
+            font-size: 24px;
+        }
+        .login-form {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="login-container">
+            <h2 class="login-title">网络安全检测系统</h2>
+            <el-form :model="loginForm" :rules="rules" ref="loginForm" class="login-form">
+                <el-form-item prop="username">
+                    <el-input v-model="loginForm.username" prefix-icon="el-icon-user" placeholder="用户名"></el-input>
+                </el-form-item>
+                <el-form-item prop="password">
+                    <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" type="password" placeholder="密码"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="handleLogin" style="width: 100%">登录</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/index.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    loginForm: {
+                        username: '',
+                        password: ''
+                    },
+                    rules: {
+                        username: [
+                            { required: true, message: '请输入用户名', trigger: 'blur' }
+                        ],
+                        password: [
+                            { required: true, message: '请输入密码', trigger: 'blur' }
+                        ]
+                    }
+                }
+            },
+            methods: {
+                handleLogin() {
+                    this.$refs.loginForm.validate(async (valid) => {
+                        if (valid) {
+                            try {
+                                const response = await axios.post('/api/auth/login', this.loginForm);
+                                if (response.data.code === 200) {
+                                    // 保存token
+                                    localStorage.setItem('token', response.data.data.token);
+                                    // 跳转到主页
+                                    window.location.href = '/dashboard.html';
+                                } else {
+                                    this.$message.error(response.data.message);
+                                }
+                            } catch (error) {
+                                this.$message.error('登录失败，请稍后重试');
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

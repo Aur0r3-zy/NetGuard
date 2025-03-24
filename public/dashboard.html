@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络安全检测系统 - 主面板</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/theme-chalk/index.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+        .el-container {
+            height: 100%;
+        }
+        .el-aside {
+            background-color: #304156;
+            color: #fff;
+        }
+        .el-menu {
+            border-right: none;
+        }
+        .el-header {
+            background-color: #fff;
+            border-bottom: 1px solid #e6e6e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .main-content {
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .dashboard-card {
+            margin-bottom: 20px;
+        }
+        .statistics-card {
+            height: 300px;
+        }
+        .statistics-number {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <el-container>
+            <el-aside width="200px">
+                <div class="logo">网络安全检测系统</div>
+                <el-menu
+                    :default-active="activeMenu"
+                    background-color="#304156"
+                    text-color="#fff"
+                    active-text-color="#409EFF">
+                    <el-menu-item index="1" @click="handleMenuClick('home')">
+                        <i class="el-icon-s-home"></i>
+                        <span>首页</span>
+                    </el-menu-item>
+                    <el-submenu index="2">
+                        <template slot="title">
+                            <i class="el-icon-s-operation"></i>
+                            <span>控制中心</span>
+                        </template>
+                        <el-menu-item index="2-1" @click="handleMenuClick('attack-monitor')">攻击模式监测</el-menu-item>
+                        <el-menu-item index="2-2" @click="handleMenuClick('risk-assessment')">风险评估工具</el-menu-item>
+                        <el-menu-item index="2-3" @click="handleMenuClick('traffic-monitor')">异常流量检测</el-menu-item>
+                        <el-menu-item index="2-4" @click="handleMenuClick('security-status')">网络安全状况</el-menu-item>
+                    </el-submenu>
+                    <el-menu-item index="3" @click="handleMenuClick('logs')">
+                        <i class="el-icon-document"></i>
+                        <span>日志消息</span>
+                    </el-menu-item>
+                    <el-menu-item index="4" @click="handleMenuClick('settings')">
+                        <i class="el-icon-setting"></i>
+                        <span>系统设置</span>
+                    </el-menu-item>
+                    <el-submenu index="5">
+                        <template slot="title">
+                            <i class="el-icon-data-line"></i>
+                            <span>数据管理</span>
+                        </template>
+                        <el-menu-item index="5-1" @click="handleMenuClick('intrusion-records')">入侵数据记录</el-menu-item>
+                        <el-menu-item index="5-2" @click="handleMenuClick('risk-database')">风险数据库管理</el-menu-item>
+                        <el-menu-item index="5-3" @click="handleMenuClick('log-analysis')">检测日志分析</el-menu-item>
+                        <el-menu-item index="5-4" @click="handleMenuClick('attack-cases')">历史攻击案例</el-menu-item>
+                    </el-submenu>
+                    <el-menu-item index="6" @click="handleMenuClick('event-response')">
+                        <i class="el-icon-warning"></i>
+                        <span>事件响应</span>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+            <el-container>
+                <el-header>
+                    <div>
+                        <el-button type="text" @click="handleLogout">退出登录</el-button>
+                    </div>
+                </el-header>
+                <el-main class="main-content">
+                    <div v-if="currentPage === 'home'">
+                        <el-row :gutter="20">
+                            <el-col :span="6">
+                                <el-card class="dashboard-card">
+                                    <div slot="header">
+                                        <span>今日攻击次数</span>
+                                    </div>
+                                    <div class="statistics-number">{{ statistics.attackCount }}</div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="dashboard-card">
+                                    <div slot="header">
+                                        <span>风险评分</span>
+                                    </div>
+                                    <div class="statistics-number">{{ statistics.riskScore }}</div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="dashboard-card">
+                                    <div slot="header">
+                                        <span>异常流量</span>
+                                    </div>
+                                    <div class="statistics-number">{{ statistics.anomalyCount }}</div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="dashboard-card">
+                                    <div slot="header">
+                                        <span>安全事件</span>
+                                    </div>
+                                    <div class="statistics-number">{{ statistics.securityEvents }}</div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20">
+                            <el-col :span="12">
+                                <el-card class="statistics-card">
+                                    <div slot="header">
+                                        <span>攻击类型分布</span>
+                                    </div>
+                                    <div id="attackTypeChart" style="height: 250px"></div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-card class="statistics-card">
+                                    <div slot="header">
+                                        <span>风险趋势</span>
+                                    </div>
+                                    <div id="riskTrendChart" style="height: 250px"></div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    <div v-else>
+                        <component :is="currentComponent"></component>
+                    </div>
+                </el-main>
+            </el-container>
+        </el-container>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/index.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.2.2/echarts.min.js"></script>
+    <script src="/components/AttackMonitor.js"></script>
+    <script src="/components/RiskAssessment.js"></script>
+    <script src="/components/TrafficMonitor.js"></script>
+    <script src="/components/SecurityStatus.js"></script>
+    <script>
+        // 检查登录状态
+        if (!localStorage.getItem('token')) {
+            window.location.href = '/index.html';
+        }
+
+        // 配置axios默认值
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + localStorage.getItem('token');
+
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    activeMenu: '1',
+                    currentPage: 'home',
+                    statistics: {
+                        attackCount: 0,
+                        riskScore: 0,
+                        anomalyCount: 0,
+                        securityEvents: 0
+                    },
+                    attackTypeChart: null,
+                    riskTrendChart: null
+                }
+            },
+            computed: {
+                currentComponent() {
+                    const components = {
+                        'attack-monitor': 'AttackMonitor',
+                        'risk-assessment': 'RiskAssessment',
+                        'traffic-monitor': 'TrafficMonitor',
+                        'security-status': 'SecurityStatus',
+                        'logs': 'Logs',
+                        'settings': 'Settings',
+                        'intrusion-records': 'IntrusionRecords',
+                        'risk-database': 'RiskDatabase',
+                        'log-analysis': 'LogAnalysis',
+                        'attack-cases': 'AttackCases',
+                        'event-response': 'EventResponse'
+                    };
+                    return components[this.currentPage] || null;
+                }
+            },
+            methods: {
+                handleMenuClick(page) {
+                    this.currentPage = page;
+                    if (page === 'home') {
+                        this.fetchStatistics();
+                    }
+                },
+                handleLogout() {
+                    localStorage.removeItem('token');
+                    window.location.href = '/index.html';
+                },
+                async fetchStatistics() {
+                    try {
+                        const response = await axios.get('/api/dashboard/statistics');
+                        if (response.data.code === 200) {
+                            const data = response.data.data;
+                            this.statistics = data.statistics;
+                            this.updateCharts(data);
+                        }
+                    } catch (error) {
+                        this.$message.error('获取统计数据失败');
+                    }
+                },
+                updateCharts(data) {
+                    // 更新攻击类型分布图表
+                    this.attackTypeChart.setOption({
+                        tooltip: {
+                            trigger: 'item'
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            left: 'left'
+                        },
+                        series: [
+                            {
+                                type: 'pie',
+                                radius: '50%',
+                                data: data.attackTypes,
+                                emphasis: {
+                                    itemStyle: {
+                                        shadowBlur: 10,
+                                        shadowOffsetX: 0,
+                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                    }
+                                }
+                            }
+                        ]
+                    });
+
+                    // 更新风险趋势图表
+                    this.riskTrendChart.setOption({
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: data.riskTrend.times
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [
+                            {
+                                data: data.riskTrend.values,
+                                type: 'line',
+                                smooth: true
+                            }
+                        ]
+                    });
+                },
+                initCharts() {
+                    this.attackTypeChart = echarts.init(document.getElementById('attackTypeChart'));
+                    this.riskTrendChart = echarts.init(document.getElementById('riskTrendChart'));
+                }
+            },
+            mounted() {
+                this.initCharts();
+                this.fetchStatistics();
+                window.addEventListener('resize', () => {
+                    this.attackTypeChart && this.attackTypeChart.resize();
+                    this.riskTrendChart && this.riskTrendChart.resize();
+                });
+            }
+        });
+    </script>
+</body>
+</html> 
