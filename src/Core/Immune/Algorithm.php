@@ -10,8 +10,24 @@ class Algorithm {
     private $memorySize;
     private $affinityThreshold;
     private $concentrationDecay;
+    private $learningRate;
+    private $maxIterations;
+    private $populationSize;
+    private $mutationRate;
+    private $crossoverRate;
+    private $fitnessFunction;
     
-    public function __construct($threshold = 0.85, $memorySize = 1000, $affinityThreshold = 0.7, $concentrationDecay = 0.1) {
+    public function __construct(
+        $threshold = 0.85, 
+        $memorySize = 1000, 
+        $affinityThreshold = 0.7, 
+        $concentrationDecay = 0.1,
+        $learningRate = 0.1,
+        $maxIterations = 100,
+        $populationSize = 100,
+        $mutationRate = 0.1,
+        $crossoverRate = 0.8
+    ) {
         $this->antigen = new Antigen();
         $this->antibody = new Antibody();
         $this->memory = new Memory();
@@ -19,9 +35,19 @@ class Algorithm {
         $this->memorySize = $memorySize;
         $this->affinityThreshold = $affinityThreshold;
         $this->concentrationDecay = $concentrationDecay;
+        $this->learningRate = $learningRate;
+        $this->maxIterations = $maxIterations;
+        $this->populationSize = $populationSize;
+        $this->mutationRate = $mutationRate;
+        $this->crossoverRate = $crossoverRate;
         
         // 初始化记忆库大小
         $this->memory->setMaxSize($this->memorySize);
+        
+        // 初始化适应度函数
+        $this->fitnessFunction = function($antibody) {
+            return $this->calculateFitness($antibody);
+        };
     }
     
     public function analyze($data) {
@@ -35,8 +61,8 @@ class Algorithm {
             // 抗原匹配
             $matchResult = $this->antigen->match($features);
             
-            // 抗体生成
-            $antibodies = $this->antibody->generate($matchResult);
+            // 抗体生成和进化
+            $antibodies = $this->generateAndEvolveAntibodies($matchResult);
             
             // 记忆更新
             $this->memory->update($antibodies);
@@ -46,6 +72,9 @@ class Algorithm {
             
             // 添加安全验证
             $this->validateResults($results);
+            
+            // 性能优化
+            $this->optimizeMemory();
             
             return $results;
             
@@ -78,6 +107,169 @@ class Algorithm {
         }
         
         return $features;
+    }
+    
+    private function generateAndEvolveAntibodies($matchResult) {
+        $population = $this->initializePopulation();
+        $bestAntibodies = [];
+        
+        for ($iteration = 0; $iteration < $this->maxIterations; $iteration++) {
+            // 评估适应度
+            $fitnessScores = array_map($this->fitnessFunction, $population);
+            
+            // 选择最佳抗体
+            $selectedAntibodies = $this->selection($population, $fitnessScores);
+            
+            // 交叉操作
+            $offspring = $this->crossover($selectedAntibodies);
+            
+            // 变异操作
+            $mutatedOffspring = $this->mutation($offspring);
+            
+            // 更新种群
+            $population = array_merge($selectedAntibodies, $mutatedOffspring);
+            
+            // 记录最佳抗体
+            $bestAntibodies = $this->updateBestAntibodies($population, $fitnessScores);
+        }
+        
+        return $bestAntibodies;
+    }
+    
+    private function initializePopulation() {
+        $population = [];
+        for ($i = 0; $i < $this->populationSize; $i++) {
+            $population[] = $this->antibody->generateRandom();
+        }
+        return $population;
+    }
+    
+    private function selection($population, $fitnessScores) {
+        // 轮盘赌选择
+        $totalFitness = array_sum($fitnessScores);
+        $selected = [];
+        
+        for ($i = 0; $i < count($population) / 2; $i++) {
+            $random = mt_rand() / mt_getrandmax() * $totalFitness;
+            $sum = 0;
+            
+            foreach ($fitnessScores as $index => $fitness) {
+                $sum += $fitness;
+                if ($sum >= $random) {
+                    $selected[] = $population[$index];
+                    break;
+                }
+            }
+        }
+        
+        return $selected;
+    }
+    
+    private function crossover($population) {
+        $offspring = [];
+        $size = count($population);
+        
+        for ($i = 0; $i < $size; $i += 2) {
+            if (mt_rand() / mt_getrandmax() < $this->crossoverRate) {
+                $parent1 = $population[$i];
+                $parent2 = $population[($i + 1) % $size];
+                
+                // 单点交叉
+                $crossoverPoint = mt_rand(0, count($parent1['features']) - 1);
+                
+                $child1 = $this->createChild($parent1, $parent2, $crossoverPoint);
+                $child2 = $this->createChild($parent2, $parent1, $crossoverPoint);
+                
+                $offspring[] = $child1;
+                $offspring[] = $child2;
+            }
+        }
+        
+        return $offspring;
+    }
+    
+    private function createChild($parent1, $parent2, $crossoverPoint) {
+        $child = [
+            'features' => array_merge(
+                array_slice($parent1['features'], 0, $crossoverPoint),
+                array_slice($parent2['features'], $crossoverPoint)
+            ),
+            'affinity' => 0
+        ];
+        
+        return $child;
+    }
+    
+    private function mutation($population) {
+        $mutated = [];
+        
+        foreach ($population as $antibody) {
+            if (mt_rand() / mt_getrandmax() < $this->mutationRate) {
+                $mutated[] = $this->mutateAntibody($antibody);
+            } else {
+                $mutated[] = $antibody;
+            }
+        }
+        
+        return $mutated;
+    }
+    
+    private function mutateAntibody($antibody) {
+        $mutated = $antibody;
+        $featureCount = count($antibody['features']);
+        
+        // 随机选择特征进行变异
+        $mutationPoints = mt_rand(1, $featureCount);
+        for ($i = 0; $i < $mutationPoints; $i++) {
+            $point = mt_rand(0, $featureCount - 1);
+            $mutated['features'][$point] = $this->generateRandomFeature();
+        }
+        
+        return $mutated;
+    }
+    
+    private function generateRandomFeature() {
+        // 生成随机特征值
+        return mt_rand(0, 1);
+    }
+    
+    private function calculateFitness($antibody) {
+        // 计算抗体与抗原的亲和度
+        $affinity = $this->antigen->calculateAffinity($antibody['features']);
+        
+        // 考虑记忆库中的相似抗体
+        $memoryAffinity = $this->memory->calculateMemoryAffinity($antibody);
+        
+        // 综合评分
+        return $affinity * (1 - $memoryAffinity);
+    }
+    
+    private function updateBestAntibodies($population, $fitnessScores) {
+        $bestAntibodies = [];
+        $bestCount = min(10, count($population));
+        
+        // 获取最佳抗体
+        arsort($fitnessScores);
+        $bestIndices = array_slice(array_keys($fitnessScores), 0, $bestCount);
+        
+        foreach ($bestIndices as $index) {
+            $bestAntibodies[] = $population[$index];
+        }
+        
+        return $bestAntibodies;
+    }
+    
+    private function optimizeMemory() {
+        // 清理低亲和度记忆
+        $this->memory->cleanup($this->affinityThreshold);
+        
+        // 合并相似记忆
+        $this->memory->mergeSimilar();
+        
+        // 更新记忆库大小
+        if ($this->memory->getSize() > $this->memorySize) {
+            $this->memory->trim($this->memorySize);
+        }
     }
     
     private function evaluateResult($antibodies) {

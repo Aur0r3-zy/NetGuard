@@ -3,43 +3,72 @@
 namespace Core\Immune;
 
 class Antibody {
+    private $features;
     private $affinity;
     private $concentration;
-    private $memory;
     
     public function __construct() {
+        $this->features = [];
         $this->affinity = 0;
-        $this->concentration = 0;
-        $this->memory = [];
+        $this->concentration = 1.0;
     }
     
     public function generate($matchResult) {
-        if (!$matchResult['matched']) {
-            return null;
+        $antibodies = [];
+        
+        foreach ($matchResult as $match) {
+            $antibody = [
+                'features' => $this->generateFeatures($match['pattern']['features']),
+                'affinity' => $match['similarity'],
+                'concentration' => 1.0
+            ];
+            
+            $antibodies[] = $antibody;
         }
         
-        // 计算亲和度
-        $this->affinity = $this->calculateAffinity($matchResult['score']);
+        return $antibodies;
+    }
+    
+    public function generateRandom() {
+        $features = [];
+        $featureCount = 10; // 默认特征数量
         
-        // 更新浓度
-        $this->concentration = $this->updateConcentration();
+        for ($i = 0; $i < $featureCount; $i++) {
+            $features[] = mt_rand(0, 1);
+        }
         
-        // 生成抗体
         return [
-            'affinity' => $this->affinity,
-            'concentration' => $this->concentration,
-            'features' => $matchResult['features']
+            'features' => $features,
+            'affinity' => 0,
+            'concentration' => 1.0
         ];
     }
     
-    private function calculateAffinity($score) {
-        // 实现亲和度计算逻辑
-        return $score * 100;
+    private function generateFeatures($patternFeatures) {
+        $features = [];
+        
+        foreach ($patternFeatures as $feature) {
+            // 添加随机变异
+            if (mt_rand() / mt_getrandmax() < 0.1) {
+                $features[] = $feature === 1 ? 0 : 1;
+            } else {
+                $features[] = $feature;
+            }
+        }
+        
+        return $features;
     }
     
-    private function updateConcentration() {
-        // 实现浓度更新逻辑
-        return $this->concentration + 1;
+    public function updateAffinity($newAffinity) {
+        $this->affinity = $newAffinity;
+    }
+    
+    public function updateConcentration($decayRate) {
+        $this->concentration *= (1 - $decayRate);
+    }
+    
+    public function getFeatures() {
+        return $this->features;
     }
     
     public function getAffinity() {
@@ -48,5 +77,13 @@ class Antibody {
     
     public function getConcentration() {
         return $this->concentration;
+    }
+    
+    public function clone() {
+        return [
+            'features' => $this->features,
+            'affinity' => $this->affinity,
+            'concentration' => $this->concentration
+        ];
     }
 } 
