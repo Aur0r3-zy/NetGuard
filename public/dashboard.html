@@ -10,16 +10,31 @@
             margin: 0;
             padding: 0;
             height: 100vh;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f0f2f5;
         }
         .el-container {
             height: 100%;
         }
         .el-aside {
-            background-color: #304156;
+            background: linear-gradient(180deg, #1a237e 0%, #0d47a1 100%);
             color: #fff;
+            transition: all 0.3s ease;
         }
         .el-menu {
             border-right: none;
+            background: transparent;
+        }
+        .el-menu-item, .el-submenu__title {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .el-menu-item:hover, .el-submenu__title:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .el-menu-item.is-active {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
         }
         .el-header {
             background-color: #fff;
@@ -27,14 +42,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         .logo {
-            height: 40px;
-            line-height: 40px;
+            height: 60px;
+            line-height: 60px;
             text-align: center;
             color: #fff;
             font-size: 20px;
             font-weight: bold;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
         }
         .main-content {
             padding: 20px;
@@ -42,28 +61,91 @@
         }
         .dashboard-card {
             margin-bottom: 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
         }
         .statistics-card {
             height: 300px;
+            border-radius: 8px;
         }
         .statistics-number {
-            font-size: 24px;
+            font-size: 32px;
             font-weight: bold;
             text-align: center;
             padding: 20px 0;
+            color: #1a237e;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        .el-card__header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ebeef5;
+            font-weight: 600;
+            color: #1a237e;
+        }
+        .el-button--text {
+            color: #1a237e;
+            font-weight: 500;
+        }
+        .el-button--text:hover {
+            color: #0d47a1;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            color: #666;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #1a237e;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .dashboard-card {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .el-row {
+            margin-bottom: 20px;
+        }
+        .el-col {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .el-col:nth-child(1) { animation-delay: 0.1s; }
+        .el-col:nth-child(2) { animation-delay: 0.2s; }
+        .el-col:nth-child(3) { animation-delay: 0.3s; }
+        .el-col:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
     <div id="app">
         <el-container>
-            <el-aside width="200px">
+            <el-aside width="240px">
                 <div class="logo">网络安全检测系统</div>
                 <el-menu
                     :default-active="activeMenu"
-                    background-color="#304156"
+                    background-color="transparent"
                     text-color="#fff"
-                    active-text-color="#409EFF">
+                    active-text-color="#fff">
                     <el-menu-item index="1" @click="handleMenuClick('home')">
                         <i class="el-icon-s-home"></i>
                         <span>首页</span>
@@ -104,8 +186,16 @@
             </el-aside>
             <el-container>
                 <el-header>
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="el-icon-user"></i>
+                        </div>
+                        <span>管理员</span>
+                    </div>
                     <div>
-                        <el-button type="text" @click="handleLogout">退出登录</el-button>
+                        <el-button type="text" @click="handleLogout">
+                            <i class="el-icon-switch-button"></i> 退出登录
+                        </el-button>
                     </div>
                 </el-header>
                 <el-main class="main-content">
@@ -114,7 +204,7 @@
                             <el-col :span="6">
                                 <el-card class="dashboard-card">
                                     <div slot="header">
-                                        <span>今日攻击次数</span>
+                                        <span><i class="el-icon-warning"></i> 今日攻击次数</span>
                                     </div>
                                     <div class="statistics-number">{{ statistics.attackCount }}</div>
                                 </el-card>
@@ -122,7 +212,7 @@
                             <el-col :span="6">
                                 <el-card class="dashboard-card">
                                     <div slot="header">
-                                        <span>风险评分</span>
+                                        <span><i class="el-icon-data-analysis"></i> 风险评分</span>
                                     </div>
                                     <div class="statistics-number">{{ statistics.riskScore }}</div>
                                 </el-card>
@@ -130,7 +220,7 @@
                             <el-col :span="6">
                                 <el-card class="dashboard-card">
                                     <div slot="header">
-                                        <span>异常流量</span>
+                                        <span><i class="el-icon-connection"></i> 异常流量</span>
                                     </div>
                                     <div class="statistics-number">{{ statistics.anomalyCount }}</div>
                                 </el-card>
@@ -138,7 +228,7 @@
                             <el-col :span="6">
                                 <el-card class="dashboard-card">
                                     <div slot="header">
-                                        <span>安全事件</span>
+                                        <span><i class="el-icon-bell"></i> 安全事件</span>
                                     </div>
                                     <div class="statistics-number">{{ statistics.securityEvents }}</div>
                                 </el-card>
@@ -148,7 +238,7 @@
                             <el-col :span="12">
                                 <el-card class="statistics-card">
                                     <div slot="header">
-                                        <span>攻击类型分布</span>
+                                        <span><i class="el-icon-pie-chart"></i> 攻击类型分布</span>
                                     </div>
                                     <div id="attackTypeChart" style="height: 250px"></div>
                                 </el-card>
@@ -156,7 +246,7 @@
                             <el-col :span="12">
                                 <el-card class="statistics-card">
                                     <div slot="header">
-                                        <span>风险趋势</span>
+                                        <span><i class="el-icon-trend-charts"></i> 风险趋势</span>
                                     </div>
                                     <div id="riskTrendChart" style="height: 250px"></div>
                                 </el-card>
@@ -230,8 +320,14 @@
                     }
                 },
                 handleLogout() {
-                    localStorage.removeItem('token');
-                    window.location.href = '/index.html';
+                    this.$confirm('确定要退出登录吗？', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        localStorage.removeItem('token');
+                        window.location.href = '/index.html';
+                    }).catch(() => {});
                 },
                 async fetchStatistics() {
                     try {
@@ -249,24 +345,42 @@
                     // 更新攻击类型分布图表
                     this.attackTypeChart.setOption({
                         tooltip: {
-                            trigger: 'item'
+                            trigger: 'item',
+                            formatter: '{a} <br/>{b}: {c} ({d}%)'
                         },
                         legend: {
                             orient: 'vertical',
-                            left: 'left'
+                            left: 'left',
+                            textStyle: {
+                                color: '#666'
+                            }
                         },
                         series: [
                             {
+                                name: '攻击类型',
                                 type: 'pie',
-                                radius: '50%',
-                                data: data.attackTypes,
+                                radius: ['50%', '70%'],
+                                avoidLabelOverlap: false,
+                                itemStyle: {
+                                    borderRadius: 10,
+                                    borderColor: '#fff',
+                                    borderWidth: 2
+                                },
+                                label: {
+                                    show: false,
+                                    position: 'center'
+                                },
                                 emphasis: {
-                                    itemStyle: {
-                                        shadowBlur: 10,
-                                        shadowOffsetX: 0,
-                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                    label: {
+                                        show: true,
+                                        fontSize: '20',
+                                        fontWeight: 'bold'
                                     }
-                                }
+                                },
+                                labelLine: {
+                                    show: false
+                                },
+                                data: data.attackTypes
                             }
                         ]
                     });
@@ -274,20 +388,53 @@
                     // 更新风险趋势图表
                     this.riskTrendChart.setOption({
                         tooltip: {
-                            trigger: 'axis'
+                            trigger: 'axis',
+                            axisPointer: {
+                                type: 'shadow'
+                            }
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
                         },
                         xAxis: {
                             type: 'category',
-                            data: data.riskTrend.times
+                            data: data.riskTrend.times,
+                            axisLabel: {
+                                color: '#666'
+                            }
                         },
                         yAxis: {
-                            type: 'value'
+                            type: 'value',
+                            axisLabel: {
+                                color: '#666'
+                            }
                         },
                         series: [
                             {
-                                data: data.riskTrend.values,
+                                name: '风险评分',
                                 type: 'line',
-                                smooth: true
+                                smooth: true,
+                                symbol: 'circle',
+                                symbolSize: 8,
+                                itemStyle: {
+                                    color: '#1a237e'
+                                },
+                                areaStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        {
+                                            offset: 0,
+                                            color: 'rgba(26, 35, 126, 0.3)'
+                                        },
+                                        {
+                                            offset: 1,
+                                            color: 'rgba(26, 35, 126, 0.1)'
+                                        }
+                                    ])
+                                },
+                                data: data.riskTrend.values
                             }
                         ]
                     });
