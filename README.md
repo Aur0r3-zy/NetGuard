@@ -77,12 +77,9 @@ php -S localhost:8000 -t public
 ```
 project/
 │  .env.example            # 环境变量示例配置文件，供用户参考填写
-│  .gitignore              # Git忽略文件配置，定义不需要提交的文件
-│  code.txt                # 一些代码或笔记文件
+│  .gitignore              # Git忽略文件配置
 │  composer.json           # PHP依赖管理器 Composer 的配置文件
 │  config.json             # 应用程序的主要配置文件
-│  INSTALL.md              # 项目安装说明文档，指导用户如何安装项目
-│  LICENSE                 # 项目许可证，通常为 MIT 或其他开源许可证
 │  phpunit.xml             # PHPUnit 测试配置文件
 │  README.md               # 项目简介和使用说明
 │
