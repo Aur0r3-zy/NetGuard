@@ -50,7 +50,7 @@
 ## 安装说明
 1. 克隆项目到本地
 ```bash
-git clone https://github.com/Aur0r3-zy/NetGuard/
+git clone [项目地址]
 ```
 
 2. 安装依赖
@@ -73,28 +73,148 @@ php -S localhost:8000 -t public
 ```
 
 ## 目录结构
+
 ```
-├── public/                 # 公共访问目录
-│   ├── api/               # API入口
-│   ├── components/        # Vue组件
-│   ├── css/              # 样式文件
-│   ├── js/               # JavaScript文件
-│   └── index.html        # 入口页面
-├── src/                   # 源代码目录
-│   ├── Api/              # API相关代码
-│   │   ├── Controller/   # 控制器
-│   │   └── routes.php    # 路由配置
-│   ├── Core/             # 核心功能
-│   │   ├── Algorithm/    # 算法实现
-│   │   ├── Data/         # 数据处理
-│   │   └── Monitor/      # 监控模块
-│   └── Config/           # 配置文件
-├── tests/                 # 测试文件
-├── vendor/                # 依赖包
-├── .env                   # 环境配置
-├── composer.json          # 项目配置
-└── README.md             # 项目说明
+project/
+├── src/                          # 源代码目录
+│   ├── Core/                     # 核心功能模块
+│   │   ├── Algorithm/           # 算法相关
+│   │   │   └── ImmuneAlgorithm.php
+│   │   ├── Immune/              # 免疫算法实现
+│   │   │   ├── Algorithm.php    # 免疫算法核心类
+│   │   │   ├── Antigen.php      # 抗原类
+│   │   │   ├── Antibody.php     # 抗体类
+│   │   │   └── Memory.php       # 记忆细胞类
+│   │   ├── Log/                 # 日志管理
+│   │   │   └── LogManager.php   # 日志管理器
+│   │   └── Monitor/             # 监控模块
+│   │       ├── TrafficMonitor.php    # 流量监控
+│   │       ├── SecurityMonitor.php   # 安全监控
+│   │       └── AttackMonitor.php     # 攻击监控
+│   ├── Api/                      # API接口
+│   │   └── Controllers/         # 控制器
+│   │       ├── DashboardController.php
+│   │       ├── IntrusionController.php
+│   │       └── MonitorController.php
+│   └── Models/                   # 数据模型
+│       ├── Intrusion.php
+│       └── Monitor.php
+├── config/                       # 配置文件目录
+│   ├── database.php             # 数据库配置
+│   ├── traffic.php              # 流量监控配置
+│   └── security.php             # 安全配置
+├── public/                       # 公共访问目录
+│   ├── index.php                # 入口文件
+│   ├── assets/                  # 静态资源
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── images/
+│   └── uploads/                 # 上传文件目录
+├── resources/                    # 资源文件
+│   ├── views/                   # 视图文件
+│   │   ├── dashboard/
+│   │   ├── intrusion/
+│   │   └── monitor/
+│   └── lang/                    # 语言文件
+│       └── zh/
+├── storage/                      # 存储目录
+│   ├── logs/                    # 日志文件
+│   ├── cache/                   # 缓存文件
+│   └── temp/                    # 临时文件
+├── tests/                        # 测试目录
+│   ├── Unit/                    # 单元测试
+│   └── Integration/             # 集成测试
+├── vendor/                       # 第三方依赖
+├── .env                         # 环境变量
+├── .gitignore                   # Git忽略文件
+├── composer.json                # Composer配置
+├── composer.lock                # Composer依赖锁定
+├── package.json                 # NPM配置
+├── README.md                    # 项目说明
+└── LICENSE                      # 许可证
 ```
+
+## 主要目录说明
+
+### src/Core/
+- **Algorithm/**: 包含核心算法实现
+- **Immune/**: 人工免疫算法相关实现
+- **Log/**: 日志管理系统
+- **Monitor/**: 监控系统核心功能
+
+### src/Api/
+- **Controllers/**: API控制器，处理HTTP请求
+- **Models/**: 数据模型，处理数据库交互
+
+### config/
+- 包含各种配置文件
+- 数据库连接配置
+- 监控参数配置
+- 安全策略配置
+
+### public/
+- Web服务器入口目录
+- 静态资源文件
+- 上传文件存储
+
+### resources/
+- 视图模板文件
+- 多语言支持文件
+
+### storage/
+- 日志文件存储
+- 缓存文件存储
+- 临时文件存储
+
+### tests/
+- 单元测试用例
+- 集成测试用例
+
+## 数据库表结构
+
+```
+- traffic_data           # 流量数据表
+- baseline_data          # 基线数据表
+- monitoring_data        # 监控数据表
+- alerts                 # 告警记录表
+- blacklist             # 黑名单表
+- whitelist             # 白名单表
+- intrusion_records     # 入侵记录表
+- attack_patterns       # 攻击模式表
+- risk_assessments      # 风险评估表
+```
+
+## 主要功能模块
+
+1. **流量监控系统**
+   - 实时流量监控
+   - 异常检测
+   - 基线分析
+   - 趋势预测
+
+2. **安全监控系统**
+   - 攻击检测
+   - 风险评估
+   - 告警管理
+   - 响应建议
+
+3. **免疫算法系统**
+   - 抗原识别
+   - 抗体生成
+   - 记忆细胞管理
+   - 模式匹配
+
+4. **日志管理系统**
+   - 日志收集
+   - 日志分析
+   - 日志存储
+   - 日志查询
+
+5. **API接口系统**
+   - RESTful API
+   - 数据交互
+   - 认证授权
+   - 接口文档
 
 ## API文档
 ### 仪表盘接口
