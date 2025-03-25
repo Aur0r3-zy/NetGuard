@@ -472,4 +472,4 @@ class LogManager {
             $logData['execution_time']
         ]);
     }
-} 
+}
