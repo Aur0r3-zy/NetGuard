@@ -606,4 +606,157 @@ class AttackMonitor {
             return 'normal';
         }
     }
+    
+    private function validatePacket($packet) {
+        // 数据包验证
+        if (!isset($packet['source_ip']) || !filter_var($packet['source_ip'], FILTER_VALIDATE_IP)) {
+            return false;
+        }
+        
+        if (isset($packet['source_port']) && (!is_numeric($packet['source_port']) || $packet['source_port'] < 0 || $packet['source_port'] > 65535)) {
+            return false;
+        }
+        
+        if (isset($packet['size']) && (!is_numeric($packet['size']) || $packet['size'] < 0)) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private function sanitizeData($data) {
+        // 数据清理
+        if (is_array($data)) {
+            return array_map([$this, 'sanitizeData'], $data);
+        }
+        
+        if (is_string($data)) {
+            return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+        }
+        
+        return $data;
+    }
+    
+    private function validateConfig() {
+        // 配置验证
+        $requiredFields = ['thresholds', 'patterns', 'allowed_protocols', 'allowed_ports'];
+        foreach ($requiredFields as $field) {
+            if (!isset($this->config[$field])) {
+                throw new \Exception("缺少必要的配置项: {$field}");
+            }
+        }
+        
+        // 验证阈值
+        if (!isset($this->thresholds['max_packet_size']) || !is_numeric($this->thresholds['max_packet_size'])) {
+            throw new \Exception('无效的最大数据包大小配置');
+        }
+        
+        // 验证协议列表
+        if (!is_array($this->thresholds['allowed_protocols'])) {
+            throw new \Exception('无效的允许协议列表配置');
+        }
+        
+        // 验证端口列表
+        if (!is_array($this->thresholds['allowed_ports'])) {
+            throw new \Exception('无效的允许端口列表配置');
+        }
+    }
+    
+    private function logSecurityEvent($event) {
+        // 安全事件日志记录
+        $logData = [
+            'timestamp' => time(),
+            'event_type' => $event['type'],
+            'severity' => $event['severity'],
+            'source_ip' => $event['packet']['source_ip'] ?? 'unknown',
+            'details' => json_encode($this->sanitizeData($event)),
+            'action_taken' => $this->determineAction($event)
+        ];
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO security_events (
+                    timestamp, event_type, severity, source_ip, details, action_taken
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $logData['timestamp'],
+                $logData['event_type'],
+                $logData['severity'],
+                $logData['source_ip'],
+                $logData['details'],
+                $logData['action_taken']
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('记录安全事件失败：' . $e->getMessage());
+        }
+    }
+    
+    private function determineAction($event) {
+        // 根据事件严重程度确定采取的行动
+        switch ($event['severity']) {
+            case 'high':
+                return json_encode([
+                    'action' => 'block_ip',
+                    'duration' => 3600,
+                    'reason' => '高危攻击行为'
+                ]);
+            case 'medium':
+                return json_encode([
+                    'action' => 'monitor',
+                    'duration' => 1800,
+                    'reason' => '可疑攻击行为'
+                ]);
+            default:
+                return json_encode([
+                    'action' => 'log',
+                    'reason' => '低风险事件'
+                ]);
+        }
+    }
+    
+    private function updateBlacklist($ip) {
+        // 更新黑名单
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO blacklist (ip_address, reason, added_at, expires_at)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                reason = VALUES(reason),
+                added_at = VALUES(added_at),
+                expires_at = VALUES(expires_at)
+            ");
+            
+            $stmt->execute([
+                $ip,
+                '检测到高危攻击行为',
+                time(),
+                time() + 3600 // 1小时后过期
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('更新黑名单失败：' . $e->getMessage());
+        }
+    }
+    
+    private function validateResponse($response) {
+        // 验证响应数据
+        if (!is_array($response)) {
+            return false;
+        }
+        
+        if (!isset($response['status']) || !in_array($response['status'], ['success', 'error'])) {
+            return false;
+        }
+        
+        if ($response['status'] === 'error' && !isset($response['message'])) {
+            return false;
+        }
+        
+        if ($response['status'] === 'success' && !isset($response['data'])) {
+            return false;
+        }
+        
+        return true;
+    }
 } 

@@ -359,6 +359,62 @@ class LogManager {
         }
     }
     
+    private function exportToCsv($logs) {
+        $filename = 'logs_' . date('Y-m-d_His') . '.csv';
+        $filepath = __DIR__ . '/../../exports/' . $filename;
+        
+        // 创建CSV文件
+        $fp = fopen($filepath, 'w');
+        
+        // 写入表头
+        $headers = ['时间', '类型', '消息', '上下文', '用户ID', 'IP地址', '请求ID', '会话ID', '用户代理', '请求方法', '请求URI', '服务器名称', '内存使用', '执行时间'];
+        fputcsv($fp, $headers);
+        
+        // 写入数据
+        foreach ($logs as $log) {
+            $row = [
+                date('Y-m-d H:i:s', $log['timestamp']),
+                $log['type'],
+                $log['message'],
+                json_encode($log['context']),
+                $log['user_id'],
+                $log['ip_address'],
+                $log['request_id'],
+                $log['session_id'],
+                $log['user_agent'],
+                $log['request_method'],
+                $log['request_uri'],
+                $log['server_name'],
+                $log['memory_usage'],
+                $log['execution_time']
+            ];
+            fputcsv($fp, $row);
+        }
+        
+        fclose($fp);
+        
+        return [
+            'status' => 'success',
+            'file' => $filename
+        ];
+    }
+    
+    private function exportToJson($logs) {
+        $filename = 'logs_' . date('Y-m-d_His') . '.json';
+        $filepath = __DIR__ . '/../../exports/' . $filename;
+        
+        // 格式化JSON数据
+        $jsonData = json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        
+        // 写入文件
+        file_put_contents($filepath, $jsonData);
+        
+        return [
+            'status' => 'success',
+            'file' => $filename
+        ];
+    }
+    
     public function exportLogs($format = 'csv', $filters = []) {
         try {
             // 获取日志数据

@@ -1,119 +1,70 @@
 <?php
 
-namespace Core\Data;
+namespace App\Core\Data;
 
 class IntrusionStatistics {
     private $db;
     private $logger;
     
-    public function __construct($db, $logger) {
-        $this->db = $db;
+    public function __construct($logger) {
+        $this->db = new \PDO(
+            "mysql:host=" . env('DB_HOST') . ";dbname=" . env('DB_DATABASE'),
+            env('DB_USERNAME'),
+            env('DB_PASSWORD')
+        );
         $this->logger = $logger;
     }
     
-    public function updateStatistics($date = null) {
-        try {
-            if ($date === null) {
-                $date = date('Y-m-d');
-            }
-            
-            // 获取指定日期的入侵记录
-            $query = "SELECT 
-                attack_type, severity, COUNT(*) as count
-                FROM intrusion_records
-                WHERE DATE(FROM_UNIXTIME(attack_time)) = ?
-                GROUP BY attack_type, severity";
-            
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$date]);
-            $statistics = $stmt->fetchAll();
-            
-            // 更新统计表
-            $this->db->beginTransaction();
-            
-            foreach ($statistics as $stat) {
-                $query = "INSERT INTO intrusion_statistics 
-                    (date, attack_type, severity, count)
-                    VALUES (?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE count = ?";
-                
-                $stmt = $this->db->prepare($query);
-                $stmt->execute([
-                    $date,
-                    $stat['attack_type'],
-                    $stat['severity'],
-                    $stat['count'],
-                    $stat['count']
-                ]);
-            }
-            
-            $this->db->commit();
-            
-            // 记录日志
-            $this->logger->info('更新入侵记录统计', [
-                'date' => $date,
-                'count' => count($statistics)
-            ]);
-            
-            return [
-                'status' => 'success',
-                'message' => '统计更新成功',
-                'data' => $statistics
-            ];
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            $this->logger->error('更新入侵记录统计失败：' . $e->getMessage());
-            return [
-                'status' => 'error',
-                'message' => '更新入侵记录统计失败：' . $e->getMessage()
-            ];
-        }
+    public function getDailyCount($date) {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as count 
+            FROM intrusion_records 
+            WHERE DATE(created_at) = ?
+        ");
+        $stmt->execute([$date]);
+        return $stmt->fetch()['count'];
     }
     
-    public function getStatistics($startDate = null, $endDate = null, $attackType = null, $severity = null) {
-        try {
-            $query = "SELECT 
-                date, attack_type, severity, count
-                FROM intrusion_statistics
-                WHERE 1=1";
-            $params = [];
-            
-            if ($startDate) {
-                $query .= " AND date >= ?";
-                $params[] = $startDate;
-            }
-            
-            if ($endDate) {
-                $query .= " AND date <= ?";
-                $params[] = $endDate;
-            }
-            
-            if ($attackType) {
-                $query .= " AND attack_type = ?";
-                $params[] = $attackType;
-            }
-            
-            if ($severity) {
-                $query .= " AND severity = ?";
-                $params[] = $severity;
-            }
-            
-            $query .= " ORDER BY date DESC, attack_type, severity";
-            
-            $stmt = $this->db->prepare($query);
-            $stmt->execute($params);
-            
-            return [
-                'status' => 'success',
-                'data' => $stmt->fetchAll()
-            ];
-        } catch (\Exception $e) {
-            $this->logger->error('获取入侵记录统计失败：' . $e->getMessage());
-            return [
-                'status' => 'error',
-                'message' => '获取入侵记录统计失败：' . $e->getMessage()
-            ];
+    public function getAttackTypeDistribution() {
+        $stmt = $this->db->prepare("
+            SELECT attack_type, COUNT(*) as count 
+            FROM intrusion_records 
+            GROUP BY attack_type
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function updateStatistics($date) {
+        $stmt = $this->db->prepare("
+            INSERT INTO daily_statistics (date, attack_count)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE attack_count = VALUES(attack_count)
+        ");
+        
+        $count = $this->getDailyCount($date);
+        return $stmt->execute([$date, $count]);
+    }
+    
+    public function getStatistics($startDate = null, $endDate = null) {
+        $query = "SELECT * FROM daily_statistics WHERE 1=1";
+        $params = [];
+        
+        if ($startDate) {
+            $query .= " AND date >= ?";
+            $params[] = $startDate;
         }
+        
+        if ($endDate) {
+            $query .= " AND date <= ?";
+            $params[] = $endDate;
+        }
+        
+        $query .= " ORDER BY date DESC";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
     
     public function getSummary($startDate = null, $endDate = null) {

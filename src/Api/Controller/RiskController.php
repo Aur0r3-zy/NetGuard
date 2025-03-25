@@ -1,90 +1,65 @@
 <?php
 
-namespace Api\Controller;
+namespace App\Api\Controller;
 
-use Core\Risk\RiskAssessor;
+use App\Core\Risk\RiskAssessor;
+use App\Core\Risk\VulnerabilityScanner;
 
 class RiskController {
     private $riskAssessor;
+    private $vulnerabilityScanner;
     
-    public function __construct(RiskAssessor $riskAssessor) {
-        $this->riskAssessor = $riskAssessor;
+    public function __construct() {
+        $this->riskAssessor = new RiskAssessor();
+        $this->vulnerabilityScanner = new VulnerabilityScanner();
     }
     
     public function scanVulnerabilities() {
         try {
-            $result = $this->riskAssessor->scanVulnerabilities();
-            
-            if ($result['status'] === 'success') {
-                return [
-                    'code' => 200,
-                    'message' => '扫描成功',
-                    'data' => $result['data']
-                ];
-            }
-            
+            $result = $this->vulnerabilityScanner->scan();
             return [
-                'code' => 500,
-                'message' => $result['message']
+                'code' => 200,
+                'message' => 'success',
+                'data' => $result
             ];
         } catch (\Exception $e) {
             return [
                 'code' => 500,
-                'message' => '漏洞扫描失败：' . $e->getMessage()
+                'message' => $e->getMessage()
             ];
         }
     }
     
     public function getAssessment() {
         try {
-            $result = $this->riskAssessor->scanVulnerabilities();
-            
-            if ($result['status'] === 'success') {
-                return [
-                    'code' => 200,
-                    'message' => '获取成功',
-                    'data' => [
-                        'vulnerabilities' => $result['data']['vulnerabilities'],
-                        'threats' => $result['data']['threats'],
-                        'report' => $result['data']['report']
-                    ]
-                ];
-            }
-            
+            $assessment = $this->riskAssessor->getAssessment();
             return [
-                'code' => 500,
-                'message' => $result['message']
+                'code' => 200,
+                'message' => 'success',
+                'data' => $assessment
             ];
         } catch (\Exception $e) {
             return [
                 'code' => 500,
-                'message' => '获取评估报告失败：' . $e->getMessage()
+                'message' => $e->getMessage()
             ];
         }
     }
     
     public function getRiskScore() {
         try {
-            $result = $this->riskAssessor->scanVulnerabilities();
-            
-            if ($result['status'] === 'success') {
-                return [
-                    'code' => 200,
-                    'message' => '获取成功',
-                    'data' => [
-                        'risk_score' => $result['data']['risk_score']
-                    ]
-                ];
-            }
-            
+            $score = $this->riskAssessor->getRiskScore();
             return [
-                'code' => 500,
-                'message' => $result['message']
+                'code' => 200,
+                'message' => 'success',
+                'data' => [
+                    'score' => $score
+                ]
             ];
         } catch (\Exception $e) {
             return [
                 'code' => 500,
-                'message' => '获取风险评分失败：' . $e->getMessage()
+                'message' => $e->getMessage()
             ];
         }
     }

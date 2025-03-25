@@ -812,4 +812,165 @@ class SecurityMonitor {
             $this->logger->error('保存监控数据失败：' . $e->getMessage());
         }
     }
+    
+    private function validateEvent($event) {
+        // 事件数据验证
+        $requiredFields = ['type', 'severity', 'description', 'timestamp'];
+        foreach ($requiredFields as $field) {
+            if (!isset($event[$field])) {
+                return false;
+            }
+        }
+        
+        // 验证严重程度
+        if (!in_array($event['severity'], ['critical', 'high', 'medium', 'low'])) {
+            return false;
+        }
+        
+        // 验证时间戳
+        if (!is_numeric($event['timestamp']) || $event['timestamp'] > time()) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private function sanitizeEventData($event) {
+        // 事件数据清理
+        $sanitized = [];
+        
+        foreach ($event as $key => $value) {
+            if (is_string($value)) {
+                $sanitized[$key] = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            } elseif (is_array($value)) {
+                $sanitized[$key] = $this->sanitizeEventData($value);
+            } else {
+                $sanitized[$key] = $value;
+            }
+        }
+        
+        return $sanitized;
+    }
+    
+    private function validatePolicy($policy) {
+        // 策略验证
+        $requiredFields = ['id', 'name', 'description', 'status', 'rules'];
+        foreach ($requiredFields as $field) {
+            if (!isset($policy[$field])) {
+                throw new \Exception("策略缺少必要字段: {$field}");
+            }
+        }
+        
+        // 验证规则
+        if (!is_array($policy['rules'])) {
+            throw new \Exception('策略规则必须是数组');
+        }
+        
+        foreach ($policy['rules'] as $rule) {
+            $this->validateRule($rule);
+        }
+        
+        return true;
+    }
+    
+    private function validateRule($rule) {
+        // 规则验证
+        $requiredFields = ['id', 'type', 'description', 'severity'];
+        foreach ($requiredFields as $field) {
+            if (!isset($rule[$field])) {
+                throw new \Exception("规则缺少必要字段: {$field}");
+            }
+        }
+        
+        // 验证规则类型
+        $validTypes = ['access_control', 'password_policy', 'network_security', 'data_protection'];
+        if (!in_array($rule['type'], $validTypes)) {
+            throw new \Exception("无效的规则类型: {$rule['type']}");
+        }
+        
+        // 验证严重程度
+        if (!in_array($rule['severity'], ['high', 'medium', 'low'])) {
+            throw new \Exception("无效的严重程度: {$rule['severity']}");
+        }
+        
+        return true;
+    }
+    
+    private function logPolicyViolation($violation) {
+        // 记录策略违规
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO policy_violations (
+                    policy_id, rule_id, violation_type, severity,
+                    description, timestamp, details
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $violation['policy_id'],
+                $violation['rule_id'],
+                $violation['type'],
+                $violation['severity'],
+                $violation['description'],
+                time(),
+                json_encode($this->sanitizeEventData($violation['details']))
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('记录策略违规失败：' . $e->getMessage());
+        }
+    }
+    
+    private function updatePolicyStatus($policyId, $status) {
+        // 更新策略状态
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE security_policies 
+                SET status = ?, last_updated = ?
+                WHERE id = ?
+            ");
+            
+            $stmt->execute([$status, time(), $policyId]);
+        } catch (\Exception $e) {
+            $this->logger->error('更新策略状态失败：' . $e->getMessage());
+        }
+    }
+    
+    private function validateComplianceData($data) {
+        // 合规性数据验证
+        if (!isset($data['standard_id']) || !is_numeric($data['standard_id'])) {
+            return false;
+        }
+        
+        if (!isset($data['compliance_score']) || !is_numeric($data['compliance_score'])) {
+            return false;
+        }
+        
+        if ($data['compliance_score'] < 0 || $data['compliance_score'] > 100) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private function logComplianceCheck($check) {
+        // 记录合规性检查
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO compliance_checks (
+                    standard_id, compliance_score, violations,
+                    timestamp, details
+                ) VALUES (?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $check['standard_id'],
+                $check['compliance_score'],
+                json_encode($this->sanitizeEventData($check['violations'])),
+                time(),
+                json_encode($this->sanitizeEventData($check['details']))
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('记录合规性检查失败：' . $e->getMessage());
+        }
+    }
 } 
