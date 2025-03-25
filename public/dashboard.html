@@ -190,7 +190,7 @@
                         <div class="user-avatar">
                             <i class="el-icon-user"></i>
                         </div>
-                        <span>管理员</span>
+                        <span>{{ userInfo.name }}</span>
                     </div>
                     <div>
                         <el-button type="text" @click="handleLogout">
@@ -265,6 +265,7 @@
     <script src="https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.13/index.js"></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.2.2/echarts.min.js"></script>
+    <script src="/js/api.js"></script>
     <script src="/components/AttackMonitor.js"></script>
     <script src="/components/RiskAssessment.js"></script>
     <script src="/components/TrafficMonitor.js"></script>
@@ -275,15 +276,16 @@
             window.location.href = '/index.html';
         }
 
-        // 配置axios默认值
-        axios.defaults.headers.common['Authorization'] = 'Bearer ' + localStorage.getItem('token');
-
         new Vue({
             el: '#app',
             data() {
                 return {
                     activeMenu: '1',
                     currentPage: 'home',
+                    userInfo: {
+                        name: '管理员',
+                        role: 'admin'
+                    },
                     statistics: {
                         attackCount: 0,
                         riskScore: 0,
@@ -291,7 +293,8 @@
                         securityEvents: 0
                     },
                     attackTypeChart: null,
-                    riskTrendChart: null
+                    riskTrendChart: null,
+                    updateTimer: null
                 }
             },
             computed: {
@@ -331,18 +334,27 @@
                 },
                 async fetchStatistics() {
                     try {
-                        const response = await axios.get('/api/dashboard/statistics');
-                        if (response.data.code === 200) {
-                            const data = response.data.data;
-                            this.statistics = data.statistics;
-                            this.updateCharts(data);
+                        const [statsRes, attackTypesRes, riskTrendRes] = await Promise.all([
+                            ApiService.dashboard.getStatistics(),
+                            ApiService.dashboard.getAttackTypes(),
+                            ApiService.dashboard.getRiskTrend({ period: '24h' })
+                        ]);
+
+                        if (statsRes.data.code === 200) {
+                            this.statistics = statsRes.data.data.statistics;
+                        }
+                        if (attackTypesRes.data.code === 200) {
+                            this.updateAttackTypeChart(attackTypesRes.data.data);
+                        }
+                        if (riskTrendRes.data.code === 200) {
+                            this.updateRiskTrendChart(riskTrendRes.data.data);
                         }
                     } catch (error) {
                         this.$message.error('获取统计数据失败');
+                        console.error('获取统计数据失败:', error);
                     }
                 },
-                updateCharts(data) {
-                    // 更新攻击类型分布图表
+                updateAttackTypeChart(data) {
                     this.attackTypeChart.setOption({
                         tooltip: {
                             trigger: 'item',
@@ -380,12 +392,15 @@
                                 labelLine: {
                                     show: false
                                 },
-                                data: data.attackTypes
+                                data: data.map(item => ({
+                                    name: item.type,
+                                    value: item.count
+                                }))
                             }
                         ]
                     });
-
-                    // 更新风险趋势图表
+                },
+                updateRiskTrendChart(data) {
                     this.riskTrendChart.setOption({
                         tooltip: {
                             trigger: 'axis',
@@ -401,7 +416,7 @@
                         },
                         xAxis: {
                             type: 'category',
-                            data: data.riskTrend.times,
+                            data: data.times,
                             axisLabel: {
                                 color: '#666'
                             }
@@ -434,7 +449,7 @@
                                         }
                                     ])
                                 },
-                                data: data.riskTrend.values
+                                data: data.values
                             }
                         ]
                     });
@@ -442,12 +457,33 @@
                 initCharts() {
                     this.attackTypeChart = echarts.init(document.getElementById('attackTypeChart'));
                     this.riskTrendChart = echarts.init(document.getElementById('riskTrendChart'));
+                },
+                startAutoUpdate() {
+                    this.updateTimer = setInterval(() => {
+                        if (this.currentPage === 'home') {
+                            this.fetchStatistics();
+                        }
+                    }, 30000); // 每30秒更新一次
+                },
+                stopAutoUpdate() {
+                    if (this.updateTimer) {
+                        clearInterval(this.updateTimer);
+                        this.updateTimer = null;
+                    }
                 }
             },
             mounted() {
                 this.initCharts();
                 this.fetchStatistics();
+                this.startAutoUpdate();
                 window.addEventListener('resize', () => {
+                    this.attackTypeChart && this.attackTypeChart.resize();
+                    this.riskTrendChart && this.riskTrendChart.resize();
+                });
+            },
+            beforeDestroy() {
+                this.stopAutoUpdate();
+                window.removeEventListener('resize', () => {
                     this.attackTypeChart && this.attackTypeChart.resize();
                     this.riskTrendChart && this.riskTrendChart.resize();
                 });
