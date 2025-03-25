@@ -9,27 +9,91 @@
         body {
             margin: 0;
             padding: 0;
-            background: #f0f2f5;
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
         }
         .login-container {
-            width: 400px;
+            width: 420px;
             padding: 40px;
-            background: #fff;
-            border-radius: 4px;
-            box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        .login-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
         }
         .login-title {
             text-align: center;
-            margin-bottom: 30px;
-            color: #303133;
-            font-size: 24px;
+            margin-bottom: 40px;
+            color: #1a237e;
+            font-size: 28px;
+            font-weight: 600;
+            position: relative;
+        }
+        .login-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: #1a237e;
+            border-radius: 2px;
         }
         .login-form {
+            margin-top: 30px;
+        }
+        .el-input__inner {
+            border-radius: 4px;
+            height: 45px;
+            line-height: 45px;
+        }
+        .el-button {
+            height: 45px;
+            font-size: 16px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .el-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+        }
+        .system-info {
+            text-align: center;
             margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .system-info a {
+            color: #1a237e;
+            text-decoration: none;
+        }
+        .system-info a:hover {
+            text-decoration: underline;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .login-container {
+            animation: fadeIn 0.8s ease-out;
         }
     </style>
 </head>
@@ -39,15 +103,19 @@
             <h2 class="login-title">网络安全检测系统</h2>
             <el-form :model="loginForm" :rules="rules" ref="loginForm" class="login-form">
                 <el-form-item prop="username">
-                    <el-input v-model="loginForm.username" prefix-icon="el-icon-user" placeholder="用户名"></el-input>
+                    <el-input v-model="loginForm.username" prefix-icon="el-icon-user" placeholder="请输入用户名"></el-input>
                 </el-form-item>
                 <el-form-item prop="password">
-                    <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" type="password" placeholder="密码"></el-input>
+                    <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" type="password" placeholder="请输入密码"></el-input>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="handleLogin" style="width: 100%">登录</el-button>
+                    <el-button type="primary" @click="handleLogin" style="width: 100%">登 录</el-button>
                 </el-form-item>
             </el-form>
+            <div class="system-info">
+                <p>基于人工免疫算法的网络攻击检测系统</p>
+                <p>技术支持：<a href="mailto:support@example.com">support@example.com</a></p>
+            </div>
         </div>
     </div>
 
@@ -65,10 +133,12 @@
                     },
                     rules: {
                         username: [
-                            { required: true, message: '请输入用户名', trigger: 'blur' }
+                            { required: true, message: '请输入用户名', trigger: 'blur' },
+                            { min: 3, max: 20, message: '用户名长度应在3-20个字符之间', trigger: 'blur' }
                         ],
                         password: [
-                            { required: true, message: '请输入密码', trigger: 'blur' }
+                            { required: true, message: '请输入密码', trigger: 'blur' },
+                            { min: 6, max: 20, message: '密码长度应在6-20个字符之间', trigger: 'blur' }
                         ]
                     }
                 }
@@ -80,10 +150,11 @@
                             try {
                                 const response = await axios.post('/api/auth/login', this.loginForm);
                                 if (response.data.code === 200) {
-                                    // 保存token
                                     localStorage.setItem('token', response.data.data.token);
-                                    // 跳转到主页
-                                    window.location.href = '/dashboard.html';
+                                    this.$message.success('登录成功，正在跳转...');
+                                    setTimeout(() => {
+                                        window.location.href = '/dashboard.html';
+                                    }, 1000);
                                 } else {
                                     this.$message.error(response.data.message);
                                 }
