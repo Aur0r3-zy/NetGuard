@@ -11,29 +11,18 @@ class Database {
     
     private function __construct() {
         try {
-            $config = require __DIR__ . '/../../config/database.php';
-            
-            $dsn = sprintf(
-                "mysql:host=%s;dbname=%s;charset=utf8mb4",
-                $config['host'],
-                $config['database']
+            $this->connection = new \PDO(
+                "mysql:host=" . env('DB_HOST') . ";dbname=" . env('DB_DATABASE'),
+                env('DB_USERNAME'),
+                env('DB_PASSWORD'),
+                [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                    \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                ]
             );
-            
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false
-            ];
-            
-            $this->connection = new PDO(
-                $dsn,
-                $config['username'],
-                $config['password'],
-                $options
-            );
-        } catch (PDOException $e) {
-            error_log("数据库连接失败：" . $e->getMessage());
-            throw $e;
+        } catch (\PDOException $e) {
+            throw new \Exception("数据库连接失败：" . $e->getMessage());
         }
     }
     
@@ -75,4 +64,10 @@ class Database {
     public function lastInsertId() {
         return $this->connection->lastInsertId();
     }
+    
+    // 防止对象被复制
+    private function __clone() {}
+    
+    // 防止对象被反序列化
+    private function __wakeup() {}
 } 

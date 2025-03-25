@@ -12,13 +12,13 @@ try {
     
     // 创建表
     echo "开始创建数据库表...\n";
-    $migration = new CreateTables($db);
+    $migration = new CreateTables($db->getConnection());
     $migration->up();
     echo "数据库表创建完成\n";
     
     // 初始化数据
     echo "开始初始化数据...\n";
-    $seed = new InitData($db);
+    $seed = new InitData($db->getConnection());
     $seed->run();
     echo "数据初始化完成\n";
     
