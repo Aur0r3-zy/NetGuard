@@ -16,6 +16,11 @@ class Algorithm {
     private $mutationRate;
     private $crossoverRate;
     private $fitnessFunction;
+    private $diversityThreshold;
+    private $eliteSize;
+    private $archiveSize;
+    private $archive;
+    private $statistics;
     
     public function __construct(
         $threshold = 0.85, 
@@ -26,7 +31,10 @@ class Algorithm {
         $maxIterations = 100,
         $populationSize = 100,
         $mutationRate = 0.1,
-        $crossoverRate = 0.8
+        $crossoverRate = 0.8,
+        $diversityThreshold = 0.3,
+        $eliteSize = 5,
+        $archiveSize = 50
     ) {
         $this->antigen = new Antigen();
         $this->antibody = new Antibody();
@@ -40,6 +48,17 @@ class Algorithm {
         $this->populationSize = $populationSize;
         $this->mutationRate = $mutationRate;
         $this->crossoverRate = $crossoverRate;
+        $this->diversityThreshold = $diversityThreshold;
+        $this->eliteSize = $eliteSize;
+        $this->archiveSize = $archiveSize;
+        $this->archive = [];
+        $this->statistics = [
+            'iterations' => 0,
+            'best_fitness' => 0,
+            'avg_fitness' => 0,
+            'diversity' => 0,
+            'memory_size' => 0
+        ];
         
         // 初始化记忆库大小
         $this->memory->setMaxSize($this->memorySize);
@@ -76,7 +95,14 @@ class Algorithm {
             // 性能优化
             $this->optimizeMemory();
             
-            return $results;
+            // 更新统计信息
+            $this->updateStatistics();
+            
+            return [
+                'results' => $results,
+                'statistics' => $this->statistics,
+                'archive' => $this->archive
+            ];
             
         } catch (\Exception $e) {
             throw new \Exception("分析过程发生错误: " . $e->getMessage());
@@ -94,7 +120,52 @@ class Algorithm {
             return !empty($item) && isset($item['features']);
         });
         
-        return $cleanedData;
+        // 数据标准化
+        $normalizedData = $this->normalizeData($cleanedData);
+        
+        return $normalizedData;
+    }
+    
+    private function normalizeData($data) {
+        $normalized = [];
+        $featureRanges = $this->calculateFeatureRanges($data);
+        
+        foreach ($data as $item) {
+            $normalizedItem = [
+                'features' => [],
+                'metadata' => $item['metadata'] ?? []
+            ];
+            
+            foreach ($item['features'] as $feature => $value) {
+                if (isset($featureRanges[$feature])) {
+                    $range = $featureRanges[$feature];
+                    $normalizedItem['features'][$feature] = ($value - $range['min']) / ($range['max'] - $range['min']);
+                } else {
+                    $normalizedItem['features'][$feature] = $value;
+                }
+            }
+            
+            $normalized[] = $normalizedItem;
+        }
+        
+        return $normalized;
+    }
+    
+    private function calculateFeatureRanges($data) {
+        $ranges = [];
+        
+        foreach ($data as $item) {
+            foreach ($item['features'] as $feature => $value) {
+                if (!isset($ranges[$feature])) {
+                    $ranges[$feature] = ['min' => $value, 'max' => $value];
+                } else {
+                    $ranges[$feature]['min'] = min($ranges[$feature]['min'], $value);
+                    $ranges[$feature]['max'] = max($ranges[$feature]['max'], $value);
+                }
+            }
+        }
+        
+        return $ranges;
     }
     
     private function extractFeatures($data) {
@@ -106,16 +177,77 @@ class Algorithm {
             }
         }
         
-        return $features;
+        // 特征选择
+        $selectedFeatures = $this->selectFeatures($features);
+        
+        return $selectedFeatures;
+    }
+    
+    private function selectFeatures($features) {
+        // 使用信息增益选择特征
+        $selected = [];
+        $threshold = 0.1;
+        
+        foreach ($features as $feature => $value) {
+            $gain = $this->calculateInformationGain($feature, $features);
+            if ($gain > $threshold) {
+                $selected[$feature] = $value;
+            }
+        }
+        
+        return $selected;
+    }
+    
+    private function calculateInformationGain($feature, $features) {
+        // 计算信息增益
+        $entropy = $this->calculateEntropy($features);
+        $conditionalEntropy = $this->calculateConditionalEntropy($feature, $features);
+        
+        return $entropy - $conditionalEntropy;
+    }
+    
+    private function calculateEntropy($features) {
+        $counts = array_count_values($features);
+        $total = count($features);
+        $entropy = 0;
+        
+        foreach ($counts as $count) {
+            $probability = $count / $total;
+            $entropy -= $probability * \log($probability, 2);
+        }
+        
+        return $entropy;
+    }
+    
+    private function calculateConditionalEntropy($feature, $features) {
+        $conditionalEntropy = 0;
+        $featureValues = array_unique($features[$feature]);
+        
+        foreach ($featureValues as $value) {
+            $subset = array_filter($features, function($item) use ($feature, $value) {
+                return $item[$feature] === $value;
+            });
+            
+            $probability = count($subset) / count($features);
+            $entropy = $this->calculateEntropy($subset);
+            $conditionalEntropy += $probability * $entropy;
+        }
+        
+        return $conditionalEntropy;
     }
     
     private function generateAndEvolveAntibodies($matchResult) {
         $population = $this->initializePopulation();
         $bestAntibodies = [];
+        $noImprovementCount = 0;
+        $lastBestFitness = 0;
         
         for ($iteration = 0; $iteration < $this->maxIterations; $iteration++) {
             // 评估适应度
             $fitnessScores = array_map($this->fitnessFunction, $population);
+            
+            // 更新精英解
+            $elites = $this->selectElites($population, $fitnessScores);
             
             // 选择最佳抗体
             $selectedAntibodies = $this->selection($population, $fitnessScores);
@@ -127,13 +259,139 @@ class Algorithm {
             $mutatedOffspring = $this->mutation($offspring);
             
             // 更新种群
-            $population = array_merge($selectedAntibodies, $mutatedOffspring);
+            $population = array_merge($elites, $mutatedOffspring);
             
             // 记录最佳抗体
-            $bestAntibodies = $this->updateBestAntibodies($population, $fitnessScores);
+            $currentBest = $this->updateBestAntibodies($population, $fitnessScores);
+            
+            // 更新档案库
+            $this->updateArchive($currentBest);
+            
+            // 检查改进
+            $currentBestFitness = max($fitnessScores);
+            if ($currentBestFitness <= $lastBestFitness) {
+                $noImprovementCount++;
+                if ($noImprovementCount >= 10) {
+                    // 触发局部搜索
+                    $population = $this->localSearch($population);
+                    $noImprovementCount = 0;
+                }
+            } else {
+                $noImprovementCount = 0;
+            }
+            $lastBestFitness = $currentBestFitness;
+            
+            // 更新统计信息
+            $this->updateIterationStatistics($population, $fitnessScores);
         }
         
         return $bestAntibodies;
+    }
+    
+    private function selectElites($population, $fitnessScores) {
+        $elites = [];
+        arsort($fitnessScores);
+        
+        $eliteIndices = array_slice(array_keys($fitnessScores), 0, $this->eliteSize);
+        foreach ($eliteIndices as $index) {
+            $elites[] = $population[$index];
+        }
+        
+        return $elites;
+    }
+    
+    private function localSearch($population) {
+        $improved = [];
+        
+        foreach ($population as $antibody) {
+            $neighbors = $this->generateNeighbors($antibody);
+            $bestNeighbor = $this->findBestNeighbor($neighbors);
+            
+            if ($this->calculateFitness($bestNeighbor) > $this->calculateFitness($antibody)) {
+                $improved[] = $bestNeighbor;
+            } else {
+                $improved[] = $antibody;
+            }
+        }
+        
+        return $improved;
+    }
+    
+    private function generateNeighbors($antibody) {
+        $neighbors = [];
+        $neighborCount = 5;
+        
+        for ($i = 0; $i < $neighborCount; $i++) {
+            $neighbor = $this->mutateAntibody($antibody);
+            $neighbors[] = $neighbor;
+        }
+        
+        return $neighbors;
+    }
+    
+    private function findBestNeighbor($neighbors) {
+        $bestFitness = -1;
+        $bestNeighbor = null;
+        
+        foreach ($neighbors as $neighbor) {
+            $fitness = $this->calculateFitness($neighbor);
+            if ($fitness > $bestFitness) {
+                $bestFitness = $fitness;
+                $bestNeighbor = $neighbor;
+            }
+        }
+        
+        return $bestNeighbor;
+    }
+    
+    private function updateArchive($antibodies) {
+        foreach ($antibodies as $antibody) {
+            $this->archive[] = $antibody;
+        }
+        
+        // 按适应度排序
+        usort($this->archive, function($a, $b) {
+            return $this->calculateFitness($b) - $this->calculateFitness($a);
+        });
+        
+        // 保持档案库大小
+        $this->archive = array_slice($this->archive, 0, $this->archiveSize);
+    }
+    
+    private function updateIterationStatistics($population, $fitnessScores) {
+        $this->statistics['iterations']++;
+        $this->statistics['best_fitness'] = max($fitnessScores);
+        $this->statistics['avg_fitness'] = array_sum($fitnessScores) / count($fitnessScores);
+        $this->statistics['diversity'] = $this->calculateDiversity($population);
+        $this->statistics['memory_size'] = $this->memory->getSize();
+    }
+    
+    private function calculateDiversity($population) {
+        $diversity = 0;
+        $count = count($population);
+        
+        for ($i = 0; $i < $count; $i++) {
+            for ($j = $i + 1; $j < $count; $j++) {
+                $diversity += $this->calculateHammingDistance(
+                    $population[$i]['features'],
+                    $population[$j]['features']
+                );
+            }
+        }
+        
+        return $diversity / ($count * ($count - 1) / 2);
+    }
+    
+    private function calculateHammingDistance($features1, $features2) {
+        $distance = 0;
+        
+        foreach ($features1 as $key => $value) {
+            if (isset($features2[$key]) && $features2[$key] !== $value) {
+                $distance++;
+            }
+        }
+        
+        return $distance;
     }
     
     private function initializePopulation() {
@@ -330,5 +588,11 @@ class Algorithm {
                 throw new \InvalidArgumentException("置信度必须在0到1之间");
             }
         }
+    }
+    
+    private function updateStatistics() {
+        $this->statistics['iterations']++;
+        $this->statistics['memory_size'] = $this->memory->getSize();
+        $this->statistics['archive_size'] = count($this->archive);
     }
 } 
