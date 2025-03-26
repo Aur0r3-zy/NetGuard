@@ -4,14 +4,17 @@ namespace App\Api\Controller;
 
 use App\Core\Data\SecurityMonitor;
 use App\Core\Data\RiskAssessment;
+use App\Core\Logger\Logger;
 
 class RiskController {
     private SecurityMonitor $securityMonitor;
     private RiskAssessment $riskAssessment;
+    private Logger $logger;
     
     public function __construct() {
+        $this->logger = new Logger();
         $this->securityMonitor = new SecurityMonitor();
-        $this->riskAssessment = new RiskAssessment();
+        $this->riskAssessment = new RiskAssessment($this->logger);
     }
     
     /**

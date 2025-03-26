@@ -14,6 +14,7 @@ class MonitorController {
     private Logger $logger;
     
     public function __construct() {
+        $this->logger = new Logger();
         $this->trafficMonitor = new TrafficMonitor();
         $this->securityMonitor = new SecurityMonitor();
         $this->intrusionStats = new IntrusionStatistics($this->logger);

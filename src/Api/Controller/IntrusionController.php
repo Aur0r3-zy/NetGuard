@@ -7,6 +7,7 @@ use App\Core\Data\IntrusionStatistics;
 use Core\Data\IntrusionTags;
 use Core\Data\IntrusionComments;
 use App\Core\Data\SecurityMonitor;
+use App\Core\Logger\Logger;
 
 class IntrusionController {
     private $intrusionRecord;
@@ -15,6 +16,7 @@ class IntrusionController {
     private $intrusionComments;
     private IntrusionStatistics $intrusionStats;
     private SecurityMonitor $securityMonitor;
+    private Logger $logger;
     
     public function __construct(
         IntrusionRecord $intrusionRecord,
@@ -26,7 +28,8 @@ class IntrusionController {
         $this->intrusionStatistics = $intrusionStatistics;
         $this->intrusionTags = $intrusionTags;
         $this->intrusionComments = $intrusionComments;
-        $this->intrusionStats = new IntrusionStatistics();
+        $this->logger = new Logger();
+        $this->intrusionStats = new IntrusionStatistics($this->logger);
         $this->securityMonitor = new SecurityMonitor();
     }
     
