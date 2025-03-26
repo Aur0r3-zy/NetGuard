@@ -1,8 +1,10 @@
 <?php
-namespace Api;
+namespace App\Api;
+
+use App\Api\Exception\RouteNotFoundException;
 
 class Router {
-    private $routes = [];
+    private array $routes = [];
     private $middlewares = [];
     
     public function get($path, $handler) {
@@ -38,7 +40,8 @@ class Router {
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && $this->matchPath($route['path'], $path, $params)) {
                 // 创建请求对象
-                $request = new Request($params);
+                $request = new Request($path, $method);
+                $request->params = $params;
                 
                 // 应用中间件
                 $handler = $route['handler'];
@@ -54,7 +57,7 @@ class Router {
         }
         
         // 未找到路由
-        throw new \Exception('未找到路由', 404);
+        throw new RouteNotFoundException();
     }
     
     private function addRoute($method, $path, $handler) {

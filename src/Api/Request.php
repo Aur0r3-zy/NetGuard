@@ -1,12 +1,15 @@
 <?php
-namespace Api;
+namespace App\Api;
 
 class Request {
-    public $params = [];
-    public $user = null;
-    
-    public function __construct($params = []) {
-        $this->params = $params;
+    public $user;
+    public string $path;
+    public string $method;
+    public array $params = [];
+
+    public function __construct(string $path, string $method) {
+        $this->path = $path;
+        $this->method = $method;
     }
     
     public function get($key, $default = null) {

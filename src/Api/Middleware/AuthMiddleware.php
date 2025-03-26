@@ -1,28 +1,29 @@
 <?php
-namespace Api\Middleware;
+namespace App\Api\Middleware;
 
-use Api\Exception\UnauthorizedException;
+use App\Api\Request;
 
-class AuthMiddleware implements MiddlewareInterface {
+class AuthMiddleware extends Middleware {
     private $excludedPaths = [
         '/api/auth/login',
         '/api/auth/register',
         '/api/auth/forgot-password'
     ];
     
-    public function handle($request, $next) {
+    public function handle(string $request, string $method): void {
+        $requestObj = new Request($request, $method);
+        
         // 检查是否是排除的路径
-        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        if (in_array($path, $this->excludedPaths)) {
-            return $next($request);
+        if (in_array($requestObj->path, $this->excludedPaths)) {
+            return;
         }
         
-        // 获取认证令牌
         $headers = getallheaders();
-        $token = isset($headers['Authorization']) ? str_replace('Bearer ', '', $headers['Authorization']) : null;
+        $token = $headers['Authorization'] ?? '';
         
-        if (!$token) {
-            throw new UnauthorizedException('未提供认证令牌');
+        if (empty($token)) {
+            http_response_code(401);
+            die(json_encode(['error' => '未提供认证令牌']));
         }
         
         try {
@@ -30,11 +31,10 @@ class AuthMiddleware implements MiddlewareInterface {
             $decoded = $this->validateToken($token);
             
             // 将用户信息添加到请求中
-            $request->user = $decoded;
-            
-            return $next($request);
+            $requestObj->user = $decoded;
         } catch (\Exception $e) {
-            throw new UnauthorizedException('无效的认证令牌');
+            http_response_code(401);
+            die(json_encode(['error' => '无效的认证令牌']));
         }
     }
     
