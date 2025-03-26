@@ -188,4 +188,253 @@ class IntrusionStatistics {
             ];
         }
     }
+    
+    /**
+     * 获取总攻击次数
+     * @return int
+     */
+    public function getTotalAttacks(): int {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as total 
+                FROM intrusion_records
+            ");
+            $stmt->execute();
+            return (int)$stmt->fetch()['total'];
+        } catch (\Exception $e) {
+            $this->logger->error('获取总攻击次数失败：' . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * 获取今日攻击次数
+     * @return int
+     */
+    public function getTodayAttacks(): int {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as count 
+                FROM intrusion_records 
+                WHERE DATE(created_at) = CURDATE()
+            ");
+            $stmt->execute();
+            return (int)$stmt->fetch()['count'];
+        } catch (\Exception $e) {
+            $this->logger->error('获取今日攻击次数失败：' . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * 获取最近的攻击记录
+     * @param int $limit 限制返回数量
+     * @return array
+     */
+    public function getRecentAttacks(int $limit = 10): array {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    id,
+                    attack_type,
+                    source_ip,
+                    target_ip,
+                    severity,
+                    description,
+                    created_at
+                FROM intrusion_records
+                ORDER BY created_at DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$limit]);
+            return $stmt->fetchAll();
+        } catch (\Exception $e) {
+            $this->logger->error('获取最近攻击记录失败：' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * 获取攻击趋势
+     * @param string $period 时间周期（hour/day/week/month）
+     * @return array
+     */
+    public function getAttackTrend(string $period = 'day'): array {
+        try {
+            $query = "SELECT 
+                DATE(created_at) as date,
+                COUNT(*) as count
+                FROM intrusion_records
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 " . strtoupper($period) . ")
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (\Exception $e) {
+            $this->logger->error('获取攻击趋势失败：' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * 获取攻击源分析
+     * @return array
+     */
+    public function getAttackSources(): array {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    source_ip,
+                    COUNT(*) as attack_count,
+                    COUNT(DISTINCT attack_type) as attack_types
+                FROM intrusion_records
+                GROUP BY source_ip
+                ORDER BY attack_count DESC
+                LIMIT 10
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (\Exception $e) {
+            $this->logger->error('获取攻击源分析失败：' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * 获取攻击目标分析
+     * @return array
+     */
+    public function getAttackTargets(): array {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    target_ip,
+                    COUNT(*) as attack_count,
+                    COUNT(DISTINCT attack_type) as attack_types
+                FROM intrusion_records
+                GROUP BY target_ip
+                ORDER BY attack_count DESC
+                LIMIT 10
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (\Exception $e) {
+            $this->logger->error('获取攻击目标分析失败：' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * 获取攻击严重程度分布
+     * @return array
+     */
+    public function getAttackSeverityDistribution(): array {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    severity,
+                    COUNT(*) as count
+                FROM intrusion_records
+                GROUP BY severity
+                ORDER BY count DESC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (\Exception $e) {
+            $this->logger->error('获取攻击严重程度分布失败：' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * 获取异常检测结果
+     * @return array
+     */
+    public function getAnomalies(): array {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    id,
+                    attack_type,
+                    source_ip,
+                    target_ip,
+                    severity,
+                    description,
+                    created_at
+                FROM intrusion_records
+                WHERE severity IN ('high', 'critical')
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                ORDER BY created_at DESC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (\Exception $e) {
+            $this->logger->error('获取异常检测结果失败：' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * 获取当前风险等级
+     * @return string
+     */
+    public function getCurrentRiskLevel(): string {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    COUNT(*) as critical_count
+                FROM intrusion_records
+                WHERE severity = 'critical'
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ");
+            $stmt->execute();
+            $criticalCount = (int)$stmt->fetch()['critical_count'];
+            
+            if ($criticalCount >= 5) {
+                return 'high';
+            } elseif ($criticalCount >= 2) {
+                return 'medium';
+            }
+            return 'low';
+        } catch (\Exception $e) {
+            $this->logger->error('获取当前风险等级失败：' . $e->getMessage());
+            return 'unknown';
+        }
+    }
+    
+    /**
+     * 获取安全建议
+     * @return array
+     */
+    public function getSecurityRecommendations(): array {
+        try {
+            $riskLevel = $this->getCurrentRiskLevel();
+            $recommendations = [];
+            
+            switch ($riskLevel) {
+                case 'high':
+                    $recommendations[] = '立即检查所有高风险攻击源';
+                    $recommendations[] = '加强防火墙规则';
+                    $recommendations[] = '更新安全补丁';
+                    break;
+                case 'medium':
+                    $recommendations[] = '检查可疑IP地址';
+                    $recommendations[] = '审查系统日志';
+                    $recommendations[] = '更新安全策略';
+                    break;
+                case 'low':
+                    $recommendations[] = '定期检查系统安全';
+                    $recommendations[] = '保持安全更新';
+                    $recommendations[] = '加强用户培训';
+                    break;
+            }
+            
+            return $recommendations;
+        } catch (\Exception $e) {
+            $this->logger->error('获取安全建议失败：' . $e->getMessage());
+            return [];
+        }
+    }
 } 

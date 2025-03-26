@@ -6,12 +6,15 @@ use App\Core\Data\IntrusionRecord;
 use App\Core\Data\IntrusionStatistics;
 use Core\Data\IntrusionTags;
 use Core\Data\IntrusionComments;
+use App\Core\Data\SecurityMonitor;
 
 class IntrusionController {
     private $intrusionRecord;
     private $intrusionStatistics;
     private $intrusionTags;
     private $intrusionComments;
+    private IntrusionStatistics $intrusionStats;
+    private SecurityMonitor $securityMonitor;
     
     public function __construct(
         IntrusionRecord $intrusionRecord,
@@ -23,6 +26,8 @@ class IntrusionController {
         $this->intrusionStatistics = $intrusionStatistics;
         $this->intrusionTags = $intrusionTags;
         $this->intrusionComments = $intrusionComments;
+        $this->intrusionStats = new IntrusionStatistics();
+        $this->securityMonitor = new SecurityMonitor();
     }
     
     public function getRecords()
@@ -320,6 +325,184 @@ class IntrusionController {
             return [
                 'code' => 500,
                 'message' => '获取评论失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取入侵检测统计数据
+     * @return array
+     */
+    public function getStatistics(): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'total_attacks' => $this->intrusionStats->getTotalAttacks(),
+                    'today_attacks' => $this->intrusionStats->getTodayAttacks(),
+                    'attack_types' => $this->intrusionStats->getAttackTypeDistribution(),
+                    'attack_sources' => $this->intrusionStats->getAttackSources(),
+                    'attack_targets' => $this->intrusionStats->getAttackTargets(),
+                    'attack_trend' => $this->intrusionStats->getAttackTrend()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取入侵检测统计数据失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取最近的攻击事件
+     * @param int $limit 限制返回数量
+     * @return array
+     */
+    public function getRecentAttacks(int $limit = 10): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'attacks' => $this->intrusionStats->getRecentAttacks($limit),
+                    'total_count' => $this->intrusionStats->getTotalAttacks()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取最近攻击事件失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取攻击类型分布
+     * @return array
+     */
+    public function getAttackTypes(): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'types' => $this->intrusionStats->getAttackTypeDistribution(),
+                    'severity_levels' => $this->intrusionStats->getAttackSeverityDistribution()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取攻击类型分布失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取攻击源分析
+     * @return array
+     */
+    public function getAttackSources(): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'top_sources' => $this->intrusionStats->getTopAttackSources(),
+                    'source_countries' => $this->intrusionStats->getAttackSourceCountries(),
+                    'source_ips' => $this->intrusionStats->getAttackSourceIPs()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取攻击源分析失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取攻击目标分析
+     * @return array
+     */
+    public function getAttackTargets(): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'top_targets' => $this->intrusionStats->getTopAttackTargets(),
+                    'target_services' => $this->intrusionStats->getTargetServices(),
+                    'target_ports' => $this->intrusionStats->getTargetPorts()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取攻击目标分析失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取攻击趋势分析
+     * @param string $period 时间周期（hour/day/week/month）
+     * @return array
+     */
+    public function getAttackTrend(string $period = 'day'): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'trend' => $this->intrusionStats->getAttackTrend($period),
+                    'period' => $period
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取攻击趋势分析失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取异常检测结果
+     * @return array
+     */
+    public function getAnomalies(): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'anomalies' => $this->intrusionStats->getAnomalies(),
+                    'risk_level' => $this->intrusionStats->getCurrentRiskLevel(),
+                    'recommendations' => $this->intrusionStats->getSecurityRecommendations()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取异常检测结果失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取安全建议
+     * @return array
+     */
+    public function getRecommendations(): array {
+        try {
+            return [
+                'status' => 'success',
+                'data' => [
+                    'immediate_actions' => $this->securityMonitor->getImmediateActions(),
+                    'long_term_recommendations' => $this->securityMonitor->getLongTermRecommendations(),
+                    'security_patches' => $this->securityMonitor->getSecurityPatches()
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => '获取安全建议失败：' . $e->getMessage()
             ];
         }
     }
