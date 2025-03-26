@@ -1,6 +1,6 @@
 <?php
 
-namespace Data;
+namespace App\Data;
 
 /**
  * 特征提取器类
@@ -412,17 +412,21 @@ class FeatureExtractor {
     
     /**
      * 计算熵
-     * @param array $values 数值数组
-     * @return float 熵值
+     * @param array $values
+     * @return float
      */
     private function calculateEntropy(array $values): float {
         $total = array_sum($values);
-        if ($total === 0) return 0;
+        if ($total === 0) {
+            return 0.0;
+        }
         
-        $entropy = 0;
+        $entropy = 0.0;
         foreach ($values as $value) {
             $probability = $value / $total;
-            $entropy -= $probability * log2($probability);
+            if ($probability > 0) {
+                $entropy -= $probability * $this->log2($probability);
+            }
         }
         
         return $entropy;
@@ -514,5 +518,27 @@ class FeatureExtractor {
      */
     public function getFeatures(): array {
         return $this->features;
+    }
+    
+    /**
+     * 计算标准差
+     * @param array $values
+     * @return float
+     */
+    private function calculateStdDev(array $values): float {
+        $mean = array_sum($values) / count($values);
+        $squaredDiffs = array_map(function($value) use ($mean) {
+            return pow($value - $mean, 2);
+        }, $values);
+        return sqrt(array_sum($squaredDiffs) / count($values));
+    }
+    
+    /**
+     * 计算以2为底的对数
+     * @param float $value
+     * @return float
+     */
+    private function log2(float $value): float {
+        return log($value, 2);
     }
 } 
