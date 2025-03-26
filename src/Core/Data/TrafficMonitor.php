@@ -50,4 +50,14 @@ class TrafficMonitor
         $stmt->execute([$limit]);
         return $stmt->fetchAll();
     }
+
+    public function getTrafficTrend(): array {
+        return [
+            'labels' => [],
+            'data' => [
+                'packets' => [],
+                'bytes' => []
+            ]
+        ];
+    }
 } 

@@ -51,4 +51,15 @@ class SecurityMonitor
         $stmt->execute([$limit]);
         return $stmt->fetchAll();
     }
+
+    public function getEventTrend(): array {
+        return [
+            'labels' => [],
+            'data' => [
+                'high' => [],
+                'medium' => [],
+                'low' => []
+            ]
+        ];
+    }
 } 
