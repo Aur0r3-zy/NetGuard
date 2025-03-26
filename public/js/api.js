@@ -1,167 +1,380 @@
-// API服务类
-const ApiService = {
-    // 基础URL
-    baseURL: '/api',
+/**
+ * API服务类 - 处理所有与后端的通信
+ */
+class ApiService {
+    constructor() {
+        this.baseUrl = '/api';
+        this.token = localStorage.getItem('token');
+        this.retryCount = 3;
+        this.retryDelay = 1000;
+        this.pendingRequests = new Map();
+    }
 
-    // 请求拦截器
-    requestInterceptor(config) {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+    /**
+     * 设置认证token
+     * @param {string} token - JWT token
+     */
+    setToken(token) {
+        this.token = token;
+        localStorage.setItem('token', token);
+    }
+
+    /**
+     * 移除认证token
+     */
+    removeToken() {
+        this.token = null;
+        localStorage.removeItem('token');
+    }
+
+    /**
+     * 通用请求方法
+     * @param {string} endpoint - API端点
+     * @param {Object} options - 请求选项
+     * @returns {Promise} 请求结果
+     */
+    async request(endpoint, options = {}) {
+        const url = `${this.baseUrl}${endpoint}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+
+        if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
         }
-        return config;
-    },
 
-    // 响应拦截器
-    responseInterceptor(response) {
-        if (response.data.code === 401) {
-            // token过期或无效
-            localStorage.removeItem('token');
-            window.location.href = '/index.html';
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        // 存储请求控制器以便后续可以取消
+        this.pendingRequests.set(url, controller);
+
+        try {
+            const response = await this._makeRequest(url, {
+                ...options,
+                headers,
+                signal
+            });
+
+            this.pendingRequests.delete(url);
+            return response;
+        } catch (error) {
+            this.pendingRequests.delete(url);
+            throw this._handleError(error);
         }
-        return response;
-    },
+    }
 
-    // 初始化axios配置
-    init() {
-        axios.interceptors.request.use(this.requestInterceptor);
-        axios.interceptors.response.use(this.responseInterceptor);
-    },
+    /**
+     * 执行请求，包含重试机制
+     * @private
+     */
+    async _makeRequest(url, options, retryCount = 0) {
+        try {
+            const response = await fetch(url, options);
 
-    // 仪表盘相关API
-    dashboard: {
-        // 获取统计数据
-        getStatistics() {
-            return axios.get(`${ApiService.baseURL}/dashboard/statistics`);
-        },
-        
-        // 获取攻击类型分布
-        getAttackTypes() {
-            return axios.get(`${ApiService.baseURL}/dashboard/attack-types`);
-        },
-        
-        // 获取风险趋势
-        getRiskTrend(params) {
-            return axios.get(`${ApiService.baseURL}/dashboard/risk-trend`, { params });
+            if (!response.ok) {
+                if (response.status === 401) {
+                    this.removeToken();
+                    window.location.href = '/index.html';
+                    throw new Error('未授权访问');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            if (retryCount < this.retryCount) {
+                await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+                return this._makeRequest(url, options, retryCount + 1);
+            }
+            throw error;
         }
-    },
+    }
 
-    // 攻击监控相关API
-    attackMonitor: {
-        // 获取实时攻击数据
-        getRealTimeData() {
-            return axios.get(`${ApiService.baseURL}/attack-monitor/realtime`);
-        },
-        
-        // 获取攻击详情
-        getAttackDetails(id) {
-            return axios.get(`${ApiService.baseURL}/attack-monitor/details/${id}`);
-        },
-        
-        // 更新攻击状态
-        updateStatus(id, status) {
-            return axios.put(`${ApiService.baseURL}/attack-monitor/status/${id}`, { status });
+    /**
+     * 处理错误
+     * @private
+     */
+    _handleError(error) {
+        console.error('API请求错误:', error);
+        if (error.name === 'AbortError') {
+            return new Error('请求已取消');
         }
-    },
+        return error;
+    }
 
-    // 风险评估相关API
-    riskAssessment: {
-        // 获取风险评估结果
-        getAssessment() {
-            return axios.get(`${ApiService.baseURL}/risk-assessment/result`);
-        },
-        
-        // 获取风险详情
-        getRiskDetails(id) {
-            return axios.get(`${ApiService.baseURL}/risk-assessment/details/${id}`);
-        },
-        
-        // 更新风险等级
-        updateRiskLevel(id, level) {
-            return axios.put(`${ApiService.baseURL}/risk-assessment/level/${id}`, { level });
+    /**
+     * 取消所有待处理的请求
+     */
+    cancelAllRequests() {
+        this.pendingRequests.forEach(controller => controller.abort());
+        this.pendingRequests.clear();
+    }
+
+    /**
+     * 取消特定请求
+     * @param {string} endpoint - API端点
+     */
+    cancelRequest(endpoint) {
+        const url = `${this.baseUrl}${endpoint}`;
+        const controller = this.pendingRequests.get(url);
+        if (controller) {
+            controller.abort();
+            this.pendingRequests.delete(url);
         }
-    },
+    }
 
-    // 流量监控相关API
-    trafficMonitor: {
-        // 获取实时流量数据
-        getRealTimeTraffic() {
-            return axios.get(`${ApiService.baseURL}/traffic-monitor/realtime`);
+    // 认证相关API
+    auth = {
+        login: (credentials) => {
+            return ApiService.prototype.request('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(credentials)
+            });
         },
-        
-        // 获取流量统计
-        getTrafficStats(params) {
-            return axios.get(`${ApiService.baseURL}/traffic-monitor/stats`, { params });
+        logout: () => {
+            return ApiService.prototype.request('/auth/logout', {
+                method: 'POST'
+            });
         },
-        
-        // 获取异常流量
-        getAnomalyTraffic() {
-            return axios.get(`${ApiService.baseURL}/traffic-monitor/anomaly`);
-        }
-    },
-
-    // 系统设置相关API
-    settings: {
-        // 获取系统配置
-        getConfig() {
-            return axios.get(`${ApiService.baseURL}/settings/config`);
-        },
-        
-        // 更新系统配置
-        updateConfig(config) {
-            return axios.put(`${ApiService.baseURL}/settings/config`, config);
-        },
-        
-        // 获取告警规则
-        getAlertRules() {
-            return axios.get(`${ApiService.baseURL}/settings/alert-rules`);
-        },
-        
-        // 更新告警规则
-        updateAlertRules(rules) {
-            return axios.put(`${ApiService.baseURL}/settings/alert-rules`, rules);
-        }
-    },
-
-    // 日志相关API
-    logs: {
-        // 获取系统日志
-        getSystemLogs(params) {
-            return axios.get(`${ApiService.baseURL}/logs/system`, { params });
-        },
-        
-        // 获取安全日志
-        getSecurityLogs(params) {
-            return axios.get(`${ApiService.baseURL}/logs/security`, { params });
-        },
-        
-        // 导出日志
-        exportLogs(type, params) {
-            return axios.get(`${ApiService.baseURL}/logs/export/${type}`, {
-                params,
-                responseType: 'blob'
+        refreshToken: () => {
+            return ApiService.prototype.request('/auth/refresh', {
+                method: 'POST'
             });
         }
+    };
+
+    // 仪表板相关API
+    dashboard = {
+        getStatistics: () => {
+            return ApiService.prototype.request('/dashboard/statistics');
+        },
+        getAttackTypes: () => {
+            return ApiService.prototype.request('/dashboard/attack-types');
+        },
+        getRiskTrend: (params) => {
+            return ApiService.prototype.request('/dashboard/risk-trend', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+        },
+        getRecentActivities: () => {
+            return ApiService.prototype.request('/dashboard/recent-activities');
+        }
+    };
+
+    // 攻击监测相关API
+    attackMonitor = {
+        getAttackList: (params) => {
+            return ApiService.prototype.request('/attack-monitor/list', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+        },
+        getAttackDetails: (id) => {
+            return ApiService.prototype.request(`/attack-monitor/details/${id}`);
+        },
+        updateAttackStatus: (id, status) => {
+            return ApiService.prototype.request(`/attack-monitor/status/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status })
+            });
+        }
+    };
+
+    // 风险评估相关API
+    riskAssessment = {
+        getRiskScore: () => {
+            return ApiService.prototype.request('/risk-assessment/score');
+        },
+        getVulnerabilities: () => {
+            return ApiService.prototype.request('/risk-assessment/vulnerabilities');
+        },
+        getRiskHistory: (params) => {
+            return ApiService.prototype.request('/risk-assessment/history', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+        }
+    };
+
+    // 流量分析相关API
+    trafficMonitor = {
+        getTrafficStats: () => {
+            return ApiService.prototype.request('/traffic-monitor/stats');
+        },
+        getAnomalies: (params) => {
+            return ApiService.prototype.request('/traffic-monitor/anomalies', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+        },
+        getTrafficHistory: (params) => {
+            return ApiService.prototype.request('/traffic-monitor/history', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+        }
+    };
+
+    // 日志相关API
+    logs = {
+        getLogList: (params) => {
+            return ApiService.prototype.request('/logs/list', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+        },
+        getLogDetails: (id) => {
+            return ApiService.prototype.request(`/logs/details/${id}`);
+        },
+        exportLogs: (params) => {
+            return ApiService.prototype.request('/logs/export', {
+                method: 'POST',
+                body: JSON.stringify(params)
+            });
+        }
+    };
+
+    // 系统设置相关API
+    settings = {
+        getSettings: () => {
+            return ApiService.prototype.request('/settings');
+        },
+        updateSettings: (settings) => {
+            return ApiService.prototype.request('/settings', {
+                method: 'PUT',
+                body: JSON.stringify(settings)
+            });
+        },
+        getSystemStatus: () => {
+            return ApiService.prototype.request('/settings/status');
+        }
+    };
+}
+
+// 创建全局API服务实例
+window.api = new ApiService();
+
+// 工具函数
+const utils = {
+    /**
+     * 格式化字节数
+     * @param {number} bytes - 字节数
+     * @returns {string} 格式化后的字符串
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },
+
+    /**
+     * 更新攻击模式图表
+     * @param {Array} types - 攻击类型数据
+     */
+    updateAttackPatternsChart(types) {
+        const ctx = document.getElementById('attack-patterns-chart')?.getContext('2d');
+        if (!ctx) return;
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: types.map(t => t.attack_type),
+                datasets: [{
+                    label: '攻击次数',
+                    data: types.map(t => t.count),
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    },
+
+    /**
+     * 更新流量趋势图表
+     * @param {Array} trend - 趋势数据
+     */
+    updateTrafficTrendChart(trend) {
+        const ctx = document.getElementById('traffic-trend-chart')?.getContext('2d');
+        if (!ctx) return;
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trend.map(t => t.hour),
+                datasets: [{
+                    label: '数据包数量',
+                    data: trend.map(t => t.packet_count),
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    tension: 0.1
+                }, {
+                    label: '总流量',
+                    data: trend.map(t => t.total_bytes),
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
     }
 };
 
-// 初始化API服务
-ApiService.init();
+// 导出工具函数
+window.utils = utils;
 
 // 实时更新函数
 function updateDashboard() {
     // 更新流量统计
-    ApiService.trafficMonitor.getTrafficStats()
+    ApiService.prototype.trafficMonitor.getTrafficStats()
         .then(stats => {
             document.getElementById('total-packets').textContent = stats.total_packets;
-            document.getElementById('total-bytes').textContent = formatBytes(stats.total_bytes);
+            document.getElementById('total-bytes').textContent = utils.formatBytes(stats.total_bytes);
             document.getElementById('unique-sources').textContent = stats.unique_sources;
             document.getElementById('unique-destinations').textContent = stats.unique_destinations;
         })
         .catch(error => console.error('更新流量统计失败:', error));
     
     // 更新告警统计
-    ApiService.dashboard.getStatistics()
+    ApiService.prototype.dashboard.getStatistics()
         .then(stats => {
             document.getElementById('total-alerts').textContent = stats.total_alerts;
             document.getElementById('critical-alerts').textContent = stats.critical_alerts;
@@ -171,82 +384,18 @@ function updateDashboard() {
         .catch(error => console.error('更新告警统计失败:', error));
     
     // 更新攻击模式图表
-    ApiService.dashboard.getAttackTypes()
+    ApiService.prototype.dashboard.getAttackTypes()
         .then(types => {
-            updateAttackPatternsChart(types);
+            utils.updateAttackPatternsChart(types);
         })
         .catch(error => console.error('更新攻击模式图表失败:', error));
     
     // 更新流量趋势图表
-    ApiService.trafficMonitor.getRealTimeTraffic()
+    ApiService.prototype.trafficMonitor.getTrafficHistory()
         .then(trend => {
-            updateTrafficTrendChart(trend);
+            utils.updateTrafficTrendChart(trend);
         })
         .catch(error => console.error('更新流量趋势图表失败:', error));
-}
-
-// 工具函数
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// 图表更新函数
-function updateAttackPatternsChart(types) {
-    const ctx = document.getElementById('attack-patterns-chart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: types.map(t => t.attack_type),
-            datasets: [{
-                label: '攻击次数',
-                data: types.map(t => t.count),
-                backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                borderColor: 'rgba(255, 99, 132, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-}
-
-function updateTrafficTrendChart(trend) {
-    const ctx = document.getElementById('traffic-trend-chart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: trend.map(t => t.hour),
-            datasets: [{
-                label: '数据包数量',
-                data: trend.map(t => t.packet_count),
-                borderColor: 'rgba(75, 192, 192, 1)',
-                tension: 0.1
-            }, {
-                label: '总流量',
-                data: trend.map(t => t.total_bytes),
-                borderColor: 'rgba(153, 102, 255, 1)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
 }
 
 // 页面加载完成后开始实时更新
